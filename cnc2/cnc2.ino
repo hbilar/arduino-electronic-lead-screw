@@ -64,7 +64,7 @@ void SendRPM()
 }
 
 
-void MoveRelative(float distance, char rapid)
+void MoveRelative(float distance, char timeBased)
 {
   float stepsForDistance = z_screw.stepsPerRev * distance / z_screw.pitch;
   long actualSteps = roundf(stepsForDistance);
@@ -76,7 +76,7 @@ void MoveRelative(float distance, char rapid)
   /* feed rate */
   float s = distance;
   float v = 0;
-  if (rapid) {
+  if (timeBased) {
     v = z_feed.feedMmPerMin / 60;   // mm / s 
   } else {
     v = z_feed.feedMmPerRot * spindle.rps;   // mm / s 
@@ -156,7 +156,7 @@ void ProcessCommand()
     else if (streq(params[0], "feedratetime")) {
       float newF = fabs(atof(params[1]));
       z_feed.feedMmPerMin = newF;
-      DEBUGFLOAT("New rapid rate (mm/min): ", newF);
+     DEBUGFLOAT("New time based rate (mm/min): ", newF);
     }
     else if (streq(params[0], "s")) {
       float newRpm = fabs(atof(params[1]));
