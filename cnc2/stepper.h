@@ -6,3 +6,4 @@ extern volatile long last_pulse;
 extern volatile char is_moving;
 
 extern char Step(long actualSteps, float stepsPerSec);
+extern void EmergencyStop();

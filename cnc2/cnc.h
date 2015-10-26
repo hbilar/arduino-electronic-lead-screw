@@ -21,7 +21,8 @@ typedef struct {
 } t_rotation;
 
 typedef struct {
-  float targetFeedRate; // mm / rev
+  float feedMmPerRot; // mm / rev
+  float feedMmPerMin; // mm / minute
 } t_feed;
 
 typedef struct {

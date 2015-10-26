@@ -50,10 +50,11 @@ void SendPos()
   DEBUGFLOAT("stepsPerMM: ", z_screw.stepsPerMM);
   DEBUGFLOAT("RPM: ", spindle.rpm);
   DEBUG("");
-  DEBUG("TIMER:  %ld", int_counter);
-  DEBUG("steps_left  %ld", steps_left);
-  DEBUG("last_pulse  %ld", last_pulse);
-  DEBUG("is_moving  %d", is_moving);
+  DEBUG("is_moving: %d", is_moving);
+  if (is_moving) {
+    DEBUG("steps_left  %ld", steps_left);
+    DEBUG("last_pulse  %ld", last_pulse);
+  }
 }
 
 
@@ -63,7 +64,7 @@ void SendRPM()
 }
 
 
-void MoveRelative(float distance)
+void MoveRelative(float distance, char rapid)
 {
   float stepsForDistance = z_screw.stepsPerRev * distance / z_screw.pitch;
   long actualSteps = roundf(stepsForDistance);
@@ -74,7 +75,12 @@ void MoveRelative(float distance)
 
   /* feed rate */
   float s = distance;
-  float v = z_feed.targetFeedRate * spindle.rps;   // mm / s
+  float v = 0;
+  if (rapid) {
+    v = z_feed.feedMmPerMin / 60;   // mm / s 
+  } else {
+    v = z_feed.feedMmPerRot * spindle.rps;   // mm / s 
+  }
   float t = s / v;
   float v_steps_per_sec = v * z_screw.stepsPerMM;
 
@@ -108,12 +114,12 @@ void BuildParams()
     }
   }
 
-  DEBUG("PARAMS:");
+  /*  DEBUG("PARAMS:");
   for (char n = 0; n < NUM_ARGS; n++) {
     if (params[n]) {
       DEBUG(">>%s<<", params[n]);
     }
-  }
+    }*/
 }
 
 
@@ -124,28 +130,43 @@ void ProcessCommand()
     BuildParams();
     
     /* Go through commands and respond */
-    if (streq(params[0], "POS")) {
+    if (streq(params[0], "pos")) {
       /* Tool position */
       SendPos();
     }
-    else if (streq(params[0], "RPM")) {
+    else if (streq(params[0], "rpm")) {
       /* Spindle RPM */
       SendRPM();
     } 
-    else if (streq(params[0], "MOVER")) {
+    else if (streq(params[0], "moverpm")) {
       float newZ = atof(params[1]);
-      MoveRelative(newZ);
+      MoveRelative(newZ, 0);
     }
-    else if (streq(params[0], "F")) {
+    else if (streq(params[0], "movetime")) {
+      float newZ = atof(params[1]);
+
+      DEBUGFLOAT("Time based movement: ", newZ);
+      MoveRelative(newZ, 1);
+    }
+    else if (streq(params[0], "feedraterpm")) {
       float newF = fabs(atof(params[1]));
-      z_feed.targetFeedRate = newF;
+      z_feed.feedMmPerRot = newF;
       DEBUGFLOAT("New feed rate (mm/rotation): ", newF);
     }
-    else if (streq(params[0], "S")) {
+    else if (streq(params[0], "feedratetime")) {
+      float newF = fabs(atof(params[1]));
+      z_feed.feedMmPerMin = newF;
+      DEBUGFLOAT("New rapid rate (mm/min): ", newF);
+    }
+    else if (streq(params[0], "s")) {
       float newRpm = fabs(atof(params[1]));
       spindle.rpm = newRpm; 
       spindle.rps = spindle.rpm / 60;
       DEBUGFLOAT("New RPM: ", spindle.rpm);
+    }
+    else if (streq(params[0], "stop")) {
+      EmergencyStop();
+      DEBUG("Emergency stop button called");
     }
     else {
       /* Unknown command */
@@ -191,8 +212,9 @@ void setup()
   spindle.rpm = 200; 
   spindle.rps = spindle.rpm / 60;
 
-  //  z_feed.targetFeedRate = 0.1; //mm per rev
-  z_feed.targetFeedRate = 3.0; //mm per rev
+  //  z_feed.feedMmPerRot = 0.1; //mm per rev
+  z_feed.feedMmPerRot = 3.0; //mm per rev
+  z_feed.feedMmPerMin = 12.0 * 60; //mm / s
 
   /* disable interrupts */
   cli();
@@ -213,7 +235,6 @@ void setup()
 
   /* enable interrupts */
   sei();
-
 
   pinMode(ledPin, OUTPUT);
   pinMode(stepPin, OUTPUT);

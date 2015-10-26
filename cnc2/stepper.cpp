@@ -25,8 +25,8 @@ char movingState = S_STOP;
 volatile long accSteps = 0;
 volatile long decSteps = 0;
 
-ISR(TIMER2_COMPA_vect){
-
+ISR(TIMER2_COMPA_vect)
+{
   /* Check if we're moving. If yes, see if enough time has 
      passed since last pulse, and if yes, pulse again */
 
@@ -118,6 +118,13 @@ ISR(TIMER2_COMPA_vect){
 }
 
 
+/* Immediately stop moving if currently moving */
+void EmergencyStop()
+{
+  is_moving = 0;
+}
+
+
 char Step(long actualSteps, float stepsPerSec)
 {
   negativeMovement = (actualSteps < 0) ? 1 : 0;
@@ -149,53 +156,3 @@ char Step(long actualSteps, float stepsPerSec)
   return 0;
 }
 
-
-#ifdef __CUT__
-char Step(long *delta, char rapid, long *feedPerSec)
-{
-  /* Z only */
-  long steps[3] = { 0, 0, 0 };
-  long sleeptime = 230;
-
-  DEBUG("STEPS:   %ld", delta[2]);
-  steps[2] = delta[2] * 100 / stepDist[2];
-
-  DEBUG("Z STEPS:   %ld,   rapid = %d", steps[2], rapid);
-  DEBUG("stepDist[2]:   %ld,   rapid = %d", steps[2], rapid);
-  /* set direction */
-  digitalWrite(dirPin, (steps[2] < 0) ? 1 : 0);
-  steps[2] = abs(steps[2]);
-  delayMicroseconds(10);
-
-  /* RAMP UP */
-  int accelleration = 1;
-  int minDelay = 100;
-  int maxDelay = 230;
-  int delay = maxDelay;
-
-  if (! rapid) { 
-    accelleration = 0;
-  }
-
-  /* ramp up */
-  char stopping = 0;
-  for (long s = 0; s < steps[2]; s++) {
-    /* recalculate delay */
-    if (((accelleration > 0) && delay > minDelay) ||
-	((accelleration < 0) && delay < minDelay)) {
-      delay = delay - accelleration;
-    }
-    digitalWrite(stepPin, 1);
-    delayMicroseconds(delay); 
-    digitalWrite(stepPin, 0);
-    delayMicroseconds(delay); 
-    
-    if (! stopping && (abs(steps[2] - s) < (maxDelay - minDelay))) {
-      //      DEBUG("STOPPING! s = %ld\n", s);
-      /* start decellerating */
-      stopping = 1;
-      accelleration = -accelleration;
-    }
-  }
-}
-#endif
