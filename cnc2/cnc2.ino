@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 
+
 #include "cnc.h"
 #include "stepper.h"
 
@@ -10,8 +11,8 @@
 /* user comms related */
 const int serialBps = 9600;
 
-#define NUM_ARGS 10
-#define BUF_SIZE 100
+#define NUM_ARGS 4
+#define BUF_SIZE 50
 char *prompt = "> ";
 char userBuf[BUF_SIZE] = "";
 char *userBufPtr = userBuf;
@@ -23,6 +24,9 @@ char *params[NUM_ARGS];
 const int ledPin = 13;
 char stepPin = 12;
 char dirPin = 11;
+
+char stepPinBit = B00010000;  /* pin 12 is bit 5 in PORTB */
+char dirPinBit =  B00001000;  /* pin 11 is bit 4 in PORTB */
 
 /* globals */
 volatile t_pos pos;   // tool position
@@ -41,7 +45,7 @@ void SendUser(char *buf) {
 void SendPos()
 {
   float relDist = pos.z * z_screw.pitch / z_screw.stepsPerRev;
-  
+ 
   DEBUG("==============");
   DEBUG("Global Step Counter:  %d\n", pos.z);
   DEBUGFLOAT("Z Pos: ", relDist);
@@ -79,7 +83,8 @@ void MoveRelative(float distance, char timeBased)
   if (timeBased) {
     v = z_feed.feedMmPerMin / 60;   // mm / s 
   } else {
-    v = z_feed.feedMmPerRot * spindle.rps;   // mm / s 
+    //    v = z_feed.feedMmPerRot * spindle.rps;   // mm / s 
+    v = z_feed.feedMmPerRot * spindle.rpm / 60;   // mm / s 
   }
   float t = s / v;
   float v_steps_per_sec = v * z_screw.stepsPerMM;
@@ -160,7 +165,7 @@ void ProcessCommand()
     else if (streq(params[0], "s")) {
       float newRpm = fabs(atof(params[1]));
       spindle.rpm = newRpm; 
-      spindle.rps = spindle.rpm / 60;
+      //      spindle.rps = spindle.rpm / 60;
       DEBUGFLOAT("New RPM: ", spindle.rpm);
     }
     else if (streq(params[0], "acc")) {
@@ -209,7 +214,6 @@ void setup()
 {
   /* global position tracker */
   pos.z = 0;
-  pos.state = 0;
 
   /* setup screw data */
   z_screw.pitch = 3; 
@@ -218,7 +222,7 @@ void setup()
 
   /* spindle related */
   spindle.rpm = 200; 
-  spindle.rps = spindle.rpm / 60;
+  //  spindle.rps = spindle.rpm / 60;
 
   //  z_feed.feedMmPerRot = 0.1; //mm per rev
   z_feed.feedMmPerRot = 3.0; //mm per rev
