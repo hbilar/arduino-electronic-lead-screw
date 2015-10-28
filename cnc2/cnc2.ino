@@ -144,7 +144,6 @@ void ProcessCommand()
     }
     else if (streq(params[0], "movetime")) {
       float newZ = atof(params[1]);
-
       DEBUGFLOAT("Time based movement: ", newZ);
       MoveRelative(newZ, 1);
     }
@@ -163,6 +162,15 @@ void ProcessCommand()
       spindle.rpm = newRpm; 
       spindle.rps = spindle.rpm / 60;
       DEBUGFLOAT("New RPM: ", spindle.rpm);
+    }
+    else if (streq(params[0], "acc")) {
+      long newAcc = abs(atoi(params[1]));
+      accelleration = newAcc;
+      DEBUG("New acc value: %ld", accelleration);
+    }
+    else if (streq(params[0], "maxdelay")) {
+      maxDelay = abs(atoi(params[1]));
+      DEBUG("New max delay value: %ld", maxDelay);
     }
     else if (streq(params[0], "stop")) {
       EmergencyStop();
