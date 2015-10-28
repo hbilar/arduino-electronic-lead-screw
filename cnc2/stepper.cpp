@@ -106,9 +106,12 @@ ISR(TIMER2_COMPA_vect)
       last_pulse = m;
       if (steps_left > 0) {
  	/* Move a step */
-	digitalWrite(stepPin, 1);
-	digitalWrite(stepPin, 0);
+	/*	digitalWrite(stepPin, 1);
+		digitalWrite(stepPin, 0); */
+	/* Toggle the step pin high, then low without using digitalWrite */
+	PORTB = PORTB | stepPinBit;
 	steps_left --;
+	PORTB = PORTB & (B11111111 ^ stepPinBit);
 
 	if (movingState == S_ACC) {
 	  /* record how many steps were spent accellerating */
