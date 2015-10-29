@@ -9,6 +9,7 @@ volatile char negativeMovement = 0; /* keep track of what
 				       direction we're moving */
 volatile char is_moving = 0;   /* enables / disables the
 				  step generation */
+volatile char is_threading = 0;
 
 /* Notes on targetDelay and accelleration values: 
 
@@ -100,6 +101,11 @@ ISR(TIMER2_COMPA_vect)
       }
     }
 
+    if (movingState == S_STEADY) {
+      /* in case of threading, adjust speed */
+      curDelay = targetDelay;
+    }
+
     /* This section of the code deals with actually moving
        the stepper motor */
     if ((m - last_pulse) > curDelay) {
@@ -154,6 +160,20 @@ void EmergencyStop()
 }
 
 
+void RecalcStepRate(float *v, float *v_steps_per_sec)
+{
+  *v_steps_per_sec = *v * z_screw.stepsPerMM;  
+}
+
+
+void SetTargetDelay(float *stepsPerSec)
+{
+  long delay;
+  targetDelay = (long)(1000000.0 / *stepsPerSec);
+  //  DEBUG("#### targetDelay = %ld", targetDelay);
+}
+
+
 char Step(long actualSteps, float stepsPerSec)
 {
   negativeMovement = (actualSteps < 0) ? 1 : 0;
@@ -163,17 +183,13 @@ char Step(long actualSteps, float stepsPerSec)
   long totSteps = abs(actualSteps);
   delayMicroseconds(10);
 
-  /* Calculate target delay between steps */
-  float stepDelay = 1000000.0 / stepsPerSec;
-
-  DEBUGFLOAT("#### stepDelay", stepDelay);
-  
   while (is_moving) {
     ; // busy wait 
   }
 
-  /* This bit submits the command, in effect */
-  targetDelay = (long)stepDelay;
+  /* Calculate target delay between steps */
+  SetTargetDelay(&stepsPerSec);
+ 
   curDelay = maxDelay;
   
   accSteps = 0;

@@ -6,6 +6,7 @@
 
 #include "cnc.h"
 #include "stepper.h"
+#include "hall_sensor.h"
 
 
 /* user comms related */
@@ -24,6 +25,11 @@ char *params[NUM_ARGS];
 const int ledPin = 13;
 char stepPin = 12;
 char dirPin = 11;
+
+char hallPin = 2; /* Pin for the rpm hall sensor */
+
+int simulatedRPMDelay = 500;
+
 
 char stepPinBit = B00010000;  /* pin 12 is bit 5 in PORTB */
 char dirPinBit =  B00001000;  /* pin 11 is bit 4 in PORTB */
@@ -83,11 +89,12 @@ void MoveRelative(float distance, char timeBased)
   if (timeBased) {
     v = z_feed.feedMmPerMin / 60;   // mm / s 
   } else {
-    //    v = z_feed.feedMmPerRot * spindle.rps;   // mm / s 
     v = z_feed.feedMmPerRot * spindle.rpm / 60;   // mm / s 
   }
   float t = s / v;
-  float v_steps_per_sec = v * z_screw.stepsPerMM;
+  //  float v_steps_per_sec = v * z_screw.stepsPerMM;
+  float v_steps_per_sec;
+  RecalcStepRate(&v, &v_steps_per_sec);
 
   DEBUGFLOAT("s(mm) = ", s);
   DEBUGFLOAT("v(mm/s) = ", v);
@@ -167,6 +174,15 @@ void ProcessCommand()
       spindle.rpm = newRpm; 
       //      spindle.rps = spindle.rpm / 60;
       DEBUGFLOAT("New RPM: ", spindle.rpm);
+    }
+    else if (streq(params[0], "d")) {
+      simulatedRPMDelay = abs(atoi(params[1]));
+      DEBUG("New RPM delay: %d", simulatedRPMDelay);
+    }
+    else if (streq(params[0], "t")) {
+      //simulatedRPMDelay = abs(atoi(params[1]));
+      is_threading = ! is_threading;
+      DEBUG("Threading mode: %d", is_threading);
     }
     else if (streq(params[0], "acc")) {
       long newAcc = abs(atoi(params[1]));
@@ -253,6 +269,10 @@ void setup()
   pinMode(dirPin, OUTPUT);
   Serial.begin(serialBps);
 
+  /* Should probably use digitalPinToInterrupt(hallPin) */
+  attachInterrupt(digitalPinToInterrupt(hallPin), 
+		  rpmInterrupt, FALLING);
+
   SendUser("");
   SendUser("Simple Electronic Lead Screw");
   SendUser("");
@@ -260,10 +280,36 @@ void setup()
 }
 
 
+long m = 0;
+long mp = 0;
+
 void loop()
 {
   if (PollUserData()) {
     /* There's a complete function to handle */
     ProcessCommand();
+  }
+
+  /* calculate rpm for threading and adjust the step delay */
+  if (is_threading) {
+    long m1 = millis();
+    if (abs(m - m1) > simulatedRPMDelay) {
+      float r = calculateRPM();
+      spindle.rpm = r;
+    
+      /* recalc step rate to keep spindle / thread synched */
+      float v_steps_per_sec;
+      float v = z_feed.feedMmPerRot * spindle.rpm / 60; // mm / s 
+      RecalcStepRate(&v, &v_steps_per_sec);
+      SetTargetDelay(&v_steps_per_sec);
+    
+      rpmInterrupt();
+
+      if (abs(mp - m1) > 1000) {
+	mp = m1;
+	DEBUGFLOAT("current RPM value = ", r);
+      }
+      m = m1;
+    }
   }
 }

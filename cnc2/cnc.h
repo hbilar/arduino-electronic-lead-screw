@@ -37,6 +37,7 @@ extern char dirPin;
 extern char stepPinBit;
 extern char dirPinBit;
 
+extern char hallPin;
 
 extern volatile t_pos pos;   // tool position
 extern volatile t_rotation spindle; // spindle related stuff
