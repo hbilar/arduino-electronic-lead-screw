@@ -64,9 +64,6 @@ float calculateRPM()
     unsigned long timeDiff = abs(high - low);
     int revs = datapoints - 1;
     
-    /*    Serial.print("timeDiff: ");
-	  Serial.println(timeDiff);*/
-        
     float rps = (revs / (timeDiff / 1000.0));
     rpm = (rps * 60.0);       
   }

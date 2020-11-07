@@ -38,11 +38,14 @@ volatile unsigned long speedLastUpdate = 0;
 volatile long timeBetweenAccChange = 1000000/500;
 
 
-/* interrupt function to move the stepper */
+/* interrupt function to move the stepper. This function is called once
+   for each clock underflow (50khz), but keeps its own timers for when
+   the next pulse should be sent.
+   Once the internal pulse timer expires, a pulse is sent and the timer
+   is reset */
 char movingState = S_STOP;
 volatile long accSteps = 0;
 volatile long decSteps = 0;
-
 ISR(TIMER2_COMPA_vect)
 {
   /* Check if we're moving. If yes, see if enough time has 
@@ -52,10 +55,11 @@ ISR(TIMER2_COMPA_vect)
   }
 
   if (is_moving) {
-    /* three states"
-       accellerating
-       steady speed
-       decellerating */
+    /* three states:
+        accellerating
+        steady speed
+        decellerating
+    */
     unsigned long m = micros();
 
     /* Check if m < last_pulse. If yes, we have overflowed
@@ -73,80 +77,80 @@ ISR(TIMER2_COMPA_vect)
        readability at the moment */
     if (movingState == S_ACC) { /* Accellerating */
       if (curDelay > targetDelay) {
-	/* We haven't hit target "speed" */
-	/* see if we should accellerate */
-	if ((speedLastUpdate + timeBetweenAccChange) < m) {
-	  /* Timer has expired - lets increase the speed */
-	  curDelay -= accelleration;
-	  speedLastUpdate = m;
-	}
+        /* We haven't hit target "speed" */
+        /* see if we should accellerate */
+        if ((speedLastUpdate + timeBetweenAccChange) < m) {
+          /* Timer has expired - lets increase the speed */
+          curDelay -= accelleration;
+          speedLastUpdate = m;
+        }
       } else {
-	/* pin to target delay */
-	curDelay = targetDelay;
-	movingState = S_STEADY;  /* record the new state */
+        /* pin to target delay */
+        curDelay = targetDelay;
+        movingState = S_STEADY;  /* record the new state */
       }
     } 
     if (movingState == S_DEC) {  /* Decellerating */
       if (curDelay < targetDelay) {
-	/* We haven't hit target "speed" */
-	/* see if we should accellerate */
-	if ((speedLastUpdate + timeBetweenAccChange) < m) {
-	  /* Timer has expired - lets decrease the speed */
-	  curDelay += accelleration;
-	  speedLastUpdate = m;
-	}
+        /* We haven't hit target "speed" */
+        /* see if we should accellerate */
+        if ((speedLastUpdate + timeBetweenAccChange) < m) {
+          /* Timer has expired - lets decrease the speed */
+          curDelay += accelleration;
+          speedLastUpdate = m;
+        }
       } else {
-	/* pin to target delay */
-	curDelay = targetDelay;
+        /* pin to target delay */
+        curDelay = targetDelay;
+        }
       }
-    }
 
-    if (movingState == S_STEADY) {
-      /* in case of threading, adjust speed */
-      curDelay = targetDelay;
-    }
-
-    /* This section of the code deals with actually moving
-       the stepper motor */
-    if ((m - last_pulse) > curDelay) {
-      last_pulse = m;
-      if (steps_left > 0) {
- 	/* Move a step */
-	/*	digitalWrite(stepPin, 1);
-		digitalWrite(stepPin, 0); */
-	/* Toggle the step pin high, then low without using digitalWrite */
-	PORTB = PORTB | stepPinBit;
-	steps_left --;
-	PORTB = PORTB & (B11111111 ^ stepPinBit);
-
-	if (movingState == S_ACC) {
-	  /* record how many steps were spent accellerating */
-	  accSteps++;
-	}
-	if (movingState == S_DEC) {
-	  /* record how many steps were spent decellerating */
-	  decSteps++;
-	}
-	
-	/* update global step counter */
-	if (negativeMovement) {
-	  pos.z --;
-	} else {
-	  pos.z ++;
-	}
-
-	/* Figure out if we should start decellerating */
-	if (steps_left <= accSteps) {
-	  /* time to start slowing down! This section assumes
-	     that we spend the same amount of time decellerating
-	     (i.e. number of steps) as accellerating. */
-	  movingState = S_DEC;
-	  targetDelay = maxDelay;
-	}
+      if (movingState == S_STEADY) {
+        /* in case of threading, adjust speed */
+        curDelay = targetDelay;
       }
+
+      /* This section of the code deals with actually moving
+        the stepper motor */
+      if ((m - last_pulse) > curDelay) {
+        last_pulse = m;
+        if (steps_left > 0) {
+          /* Move a step */
+          /*	digitalWrite(stepPin, 1);
+            digitalWrite(stepPin, 0); */
+          /* Toggle the step pin high, then low without using digitalWrite */
+          PORTB = PORTB | stepPinBit;
+          steps_left --;
+          PORTB = PORTB & (B11111111 ^ stepPinBit);
+
+          if (movingState == S_ACC) {
+            /* record how many steps were spent accellerating */
+            accSteps++;
+          }
+          if (movingState == S_DEC) {
+            /* record how many steps were spent decellerating */
+            decSteps++;
+          }
+          
+          /* update global step counter */
+          if (negativeMovement) {
+            pos.z --;
+          } else {
+            pos.z ++;
+          }
+
+          /* Figure out if we should start decellerating */
+          if (steps_left <= accSteps) {
+            /* time to start slowing down! This section assumes
+              that we spend the same amount of time decellerating
+              (i.e. number of steps) as accellerating. */
+            movingState = S_DEC;
+            targetDelay = maxDelay;
+          }
+        }
       else {
-	/* We've run out of steps - stop moving */
-	is_moving = 0;
+        /* We've run out of steps - stop moving */
+        is_moving = 0;
       }
     }
   }

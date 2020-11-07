@@ -15,6 +15,7 @@ typedef struct {
 #define S_STEADY 2
 #define S_DEC 3
 
+typedef enum move_calculation_type { movement_rotational_based, movement_time_based } move_calculation_type;
 
 typedef struct {
   float rpm;
@@ -23,6 +24,7 @@ typedef struct {
 typedef struct {
   float feedMmPerRot; // mm / rev
   float feedMmPerMin; // mm / minute
+  move_calculation_type current_move_type; // rotational based (mm/rot), or time based (mm/min)
 } t_feed;
 
 typedef struct {
