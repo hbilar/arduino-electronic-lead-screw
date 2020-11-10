@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [[ $_ != $0 ]]; then 
+	source $(dirname $0)/config.sh
+	source $venv/bin/activate
+else
+	echo
+	echo "ERROR: You must source this script, not run it directly."
+	echo
+	echo "Try:  source $0"
+	exit 1
+fi
