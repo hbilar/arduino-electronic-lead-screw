@@ -5,12 +5,15 @@ import attr
 WIDTH = 640
 HEIGHT = 480
 
+C_WHITE = (255, 255, 255)
+
+image_data = {}
+
 @attr.s
 class PyguimeEvent(object):
     # pygame.events
     pygame_events = attr.ib(default=None)
     pyguime_events = attr.ib(default=None)
-
 
 
 @attr.s
@@ -23,19 +26,56 @@ class PyguimeWidget(object):
 
     children = attr.ib(default=None)
 
-    background = attr.ib(default=(0,0,0))
+    background = attr.ib(default=None)
+    image = attr.ib(default=None)
     pos = attr.ib(default=(0,0))
     size = attr.ib(default=(0,0))
+
+    # dict to hold user defined info about the widget
+    data = attr.ib(default=None)
+
 
 
 def draw_widgets(surface, widgets):
     """ Draw the pyguime widgets onto the surface"""
 
     for w in widgets:
-        pygame.draw.rect(surface, w.background, pygame.Rect(w.pos, w.size))
+        if w.background:
+            pygame.draw.rect(surface, w.background, pygame.Rect(w.pos, w.size))
+        elif w.image:
+            if not image_data.get(w.image, None):
+                image_data[w.image] = pygame.image.load(w.image)
+            surface.blit(image_data[w.image], w.pos, (0, 0, w.size[0], w.size[1]))
+        else:
+            # default to just an outline
+            pygame.draw.rect(surface, C_WHITE, pygame.Rect(w.pos, w.size), 1)
 
     return surface
 
+
+def get_widget_at_position(widgets, pos):
+    """ Return the widget that is at position pos """
+
+    cur_widget = None
+    for w in widgets:
+        if (w.pos[0] <= pos[0] and w.pos[0] + w.size[0] > pos[0] and
+            w.pos[1] <= pos[1] and w.pos[1] + w.size[1] > pos[1]):
+            # Inside bounding box
+            cur_widget = w
+
+    return cur_widget
+
+
+def handle_mouseclick(widgets, pos):
+    """ Process a mouse click """
+
+    print(f"Mouse click at {pos[0]} x {pos[1]}")
+    w = get_widget_at_position(widgets, pos)
+    print(f"Widget: {w}")
+
+    if w and w.click_callback:
+        rel_pos = (w.pos[0] - pos[0], w.pos[1] - pos[1])
+        w.click_callback(w, rel_pos)
 
 def setup_screen(width=WIDTH, height=HEIGHT):
     pygame.init()

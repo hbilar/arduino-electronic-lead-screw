@@ -4,6 +4,8 @@ import pygame
 
 import pyguime
 
+import logic
+
 
 @attr.s
 class MachineState(object):
@@ -33,19 +35,18 @@ class MachineState(object):
 def main_loop(screen, widgets):
 
     gui_surface = pygame.Surface((pyguime.WIDTH, pyguime.HEIGHT)).convert()
-    gui_surface.fill((0,0,128))
-
-
-    gui_surface = pyguime.draw_widgets(gui_surface, widgets)
 
     running = True
 
 
     while running:
+        gui_surface.fill((0, 0, 128))
+        gui_surface = pyguime.draw_widgets(gui_surface, widgets)
+
+
         # Handle pygame events (button presses etc)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                send_poweroff_to_emulator(sock)
                 running = False
 
             # Check keyboard presses
@@ -56,6 +57,10 @@ def main_loop(screen, widgets):
                 if event.key == pygame.K_ESCAPE:
                     print("Quitting...")
                     running = False
+
+            if event.type == pygame.MOUSEBUTTONUP:
+                pyguime.handle_mouseclick(widgets, pygame.mouse.get_pos())
+
 
         # scale and blit to screen
         screen.blit(gui_surface, (0, 0))
@@ -102,12 +107,15 @@ def main():
                                        pos=(col * (key_size[0] + key_space[0]),
                                             row * (key_size[1] + key_space[1])),
                                        size=key_size,
-                                       background=(0,20*n,0)
+                                       background=(0,20*n,0),
+                                       data={'number': n},
+                                       click_callback=logic.sample_button_callback
                                             )
         keypad_widgets.append(number)
 
-    widgets = [ pyguime.PyguimeWidget(name="rect1", pos=(100,100), size=(50, 100)),
-                pyguime.PyguimeWidget(name="rect2", pos=(10,10), size=(10, 10), background=(128, 0, 0)) ] + keypad_widgets
+    widgets = [ pyguime.PyguimeWidget(name="rect1", pos=(100,100), size=(50, 100), click_callback=logic.sample_button_callback),
+                pyguime.PyguimeWidget(name="rect2", pos=(10,10), size=(10, 10), background=(128, 0, 0)),
+                pyguime.PyguimeWidget(name="image", pos=(200, 200), size=(50, 50), image="images/ball.png")] + keypad_widgets
 
 
 
