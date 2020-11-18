@@ -31,8 +31,18 @@ class PyguimeWidget(object):
     pos = attr.ib(default=(0,0))
     size = attr.ib(default=(0,0))
 
+    # The image function is used to draw the widget, if defined
+    image_function = attr.ib(default=None)
+
     # dict to hold user defined info about the widget
     data = attr.ib(default=None)
+
+@attr.s
+class PyguimeScreen(object):
+    """ Class to hold pygame stuff etc """
+    screen = attr.ib(default=None)
+    width = attr.ib(default=WIDTH)
+    height = attr.ib(default=HEIGHT)
 
 
 
@@ -46,6 +56,9 @@ def draw_widgets(surface, widgets):
             if not image_data.get(w.image, None):
                 image_data[w.image] = pygame.image.load(w.image)
             surface.blit(image_data[w.image], w.pos, (0, 0, w.size[0], w.size[1]))
+        elif w.image_function:
+            # A function to draw the image exists
+            surface.blit(w.image_function(w), w.pos, (0, 0, w.size[0], w.size[1]))
         else:
             # default to just an outline
             pygame.draw.rect(surface, C_WHITE, pygame.Rect(w.pos, w.size), 1)
@@ -74,10 +87,14 @@ def handle_mouseclick(widgets, pos):
     print(f"Widget: {w}")
 
     if w and w.click_callback:
-        rel_pos = (w.pos[0] - pos[0], w.pos[1] - pos[1])
+        rel_pos = (pos[0] - w.pos[0], pos[1] - w.pos[1])
         w.click_callback(w, rel_pos)
+
 
 def setup_screen(width=WIDTH, height=HEIGHT):
     pygame.init()
-    return pygame.display.set_mode((width, height))
+
+    return PyguimeScreen(screen=pygame.display.set_mode((width, height)),
+                         width=width,
+                         height=height)
 
