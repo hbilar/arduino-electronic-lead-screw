@@ -37,6 +37,63 @@ class PyguimeWidget(object):
     # dict to hold user defined info about the widget
     data = attr.ib(default=None)
 
+    _image_data = attr.ib(default=None)
+
+    def draw(self):
+        """ produce a surface with image data on it, in (0,0) """
+        surface = pygame.Surface(self.size)
+
+        if self.image:
+            #if not image_data.get(self.image, None):
+            if not self._image_data:
+                print("loading")
+                self._image_data = pygame.image.load(self.image)
+            surface.blit(self._image_data, (0, 0), (0, 0, self.size[0], self.size[1]))
+        elif self.image_function:
+            # A function to draw the image exists
+            surface.blit(self.image_function(), (0,0), (0, 0, self.size[0], self.size[1]))
+        elif self.background:
+            # simple background
+            pygame.draw.rect(surface, self.background, pygame.Rect((0, 0), self.size))
+        else:
+            # default to just an outline
+            pygame.draw.rect(surface, C_WHITE, pygame.Rect((0,0), self.size), 1)
+
+        return surface
+
+
+@attr.s
+class PyguimeTextbox(PyguimeWidget):
+    """ Class to hold textbox data """
+
+    text = attr.ib(default="default text")
+    font = attr.ib(default="Comic Sans MS")
+
+    font_size = attr.ib(default=15)
+    font_colour = attr.ib(default=(255,0,0))
+
+    def get_text(self):
+        return self.text
+
+    def set_text(self, text):
+        self.text = text
+
+    def draw(self):
+        """ Draw a piece of text (widget.data['text]) on a surface """
+
+        surface = pygame.Surface(self.size)
+
+        font_name = self.font
+        font_size = self.font_size
+        font_colour = self.font_colour
+
+        widget_font = pygame.font.SysFont(font_name, font_size)
+
+        text = self.text
+        surface.blit(widget_font.render(text, False, font_colour), (0, 0))
+
+        return surface
+
 @attr.s
 class PyguimeScreen(object):
     """ Class to hold pygame stuff etc """
@@ -50,18 +107,11 @@ def draw_widgets(surface, widgets):
     """ Draw the pyguime widgets onto the surface"""
 
     for w in widgets:
-        if w.background:
-            pygame.draw.rect(surface, w.background, pygame.Rect(w.pos, w.size))
-        elif w.image:
-            if not image_data.get(w.image, None):
-                image_data[w.image] = pygame.image.load(w.image)
-            surface.blit(image_data[w.image], w.pos, (0, 0, w.size[0], w.size[1]))
-        elif w.image_function:
-            # A function to draw the image exists
-            surface.blit(w.image_function(w), w.pos, (0, 0, w.size[0], w.size[1]))
-        else:
-            # default to just an outline
-            pygame.draw.rect(surface, C_WHITE, pygame.Rect(w.pos, w.size), 1)
+
+        w_surface = w.draw()
+        if w_surface:
+            surface.blit(w_surface, w.pos, (0, 0, w.size[0], w.size[1]))
+
 
     return surface
 

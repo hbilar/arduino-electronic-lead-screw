@@ -1,6 +1,7 @@
 """ File to handle the logic side of the user interface, e.g. button
     callbacks """
 
+import pyguime
 
 textbox_values = {}
 
@@ -29,13 +30,12 @@ def sample_button_callback(widget, pos):
 
     print(f"** Button callback: position = {pos}, widget = {widget}")
 
-    if widget.data and widget.data.get('text'):
+    if isinstance(widget, pyguime.PyguimeTextbox):
         n = 0
         try:
-            text = widget.data.get('text', None)
-            if text:
-                n = int(text)
+            if widget.text:
+                n = int(widget.text)
         except ValueError:
             pass
 
-        widget.data['text'] = str(n + 1)
+        widget.text = str(n + 1)

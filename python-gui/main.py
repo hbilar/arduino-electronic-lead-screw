@@ -59,55 +59,6 @@ def cached_keypad(func):
     return wrapper
 
 
-@cached
-def sprite_func_text(widget):
-    """ Draw a piece of text (widget.data['text]) on a surface """
-
-    surface = pygame.Surface(widget.size)
-
-    # sane defaults
-    default_font_name = 'Comic Sans MS'
-    default_font_size = 15
-    default_colour = (255, 0, 0)
-
-    font_name = widget.data.get('font', default_font_name) if widget.data else default_font_name
-    font_size = widget.data.get('fontsize', default_font_size) if widget.data else default_font_size
-    widget_font = pygame.font.SysFont(font_name, font_size)
-
-    font_colour = widget.data.get('font_colour', default_colour) if widget.data else default_colour
-
-    text = widget.data['text'] if widget.data and widget.data.get('text', None) else widget.name
-    surface.blit(widget_font.render(text, False, font_colour), (0, 0))
-
-    return surface
-
-
-@cached_keypad
-def sprite_func_keypad(widget):
-    """ Draw a piece of text (widget.data['text]) on a surface """
-
-    surface = pygame.Surface(widget.size)
-
-    # sane defaults
-    default_font_name = 'Comic Sans MS'
-    default_font_size = 15
-    default_colour = (255, 0, 0)
-
-    font_name = widget.data.get('font', default_font_name) if widget.data else default_font_name
-    font_size = widget.data.get('fontsize', default_font_size) if widget.data else default_font_size
-    widget_font = pygame.font.SysFont(font_name, font_size)
-
-    font_colour = widget.data.get('font_colour', default_colour) if widget.data else default_colour
-
-    value = logic.textbox_values.get(widget.data.get('textbox_id'), "")
-    surface.blit(widget_font.render(value, False, font_colour), (0, 0))
-
-#    text = widget.data['text'] if widget.data and widget.data.get('text', None) else widget.name
-#    surface.blit(widget_font.render(text, False, font_colour), (0, 0))
-
-    return surface
-
-
 def main_loop(pyguime_screen, widgets):
 
     gui_surface = pygame.Surface((pyguime.WIDTH, pyguime.HEIGHT)).convert()
@@ -187,8 +138,8 @@ def main():
     widgets = [ pyguime.PyguimeWidget(name="rect1", pos=(100,100), size=(50, 100), click_callback=logic.sample_button_callback),
                 pyguime.PyguimeWidget(name="rect2", pos=(10,10), size=(10, 10), background=(128, 0, 0)),
                 pyguime.PyguimeWidget(name="image", pos=(200, 200), size=(50, 50), image="images/ball.png"),
-                pyguime.PyguimeWidget(name="imgfunc", pos=(300, 30), size=(100, 100), image_function=sprite_func_text, data={'text': 'sample'}, click_callback=logic.sample_button_callback),
-                pyguime.PyguimeWidget(name="keypad_text", pos=(300, 230), size=(100, 100), image_function=sprite_func_keypad, data={'textbox_id': 'test'}),
+                pyguime.PyguimeTextbox(name="imgfunc", pos=(300, 30), size=(100, 100), click_callback=logic.sample_button_callback),
+                pyguime.PyguimeTextbox(name="keypad_text", pos=(300, 230), size=(100, 100), text='test'),
                 ] + keypad_widgets
 
 
