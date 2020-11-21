@@ -17,25 +17,78 @@ class PyguimeEvent(object):
 
 
 @attr.s
-class PyguimeWidget(object):
-    """ Class to hold a widget. Widgets are objects that can be drawn on screen.
-        A widget is a container that can contain other widgets """
-
+class PyguimeBaseWidget(object):
+    """ base class for pyguime widgets """
     name = attr.ib(default=None)
-    click_callback = attr.ib(default=None)
-
-    children = attr.ib(default=None)
-
-    background = attr.ib(default=None)
-    image = attr.ib(default=None)
-    pos = attr.ib(default=(0,0))
-    size = attr.ib(default=(0,0))
-
-    # The image function is used to draw the widget, if defined
-    image_function = attr.ib(default=None)
 
     # dict to hold user defined info about the widget
     data = attr.ib(default=None)
+
+
+@attr.s
+class PyguimeClickable(PyguimeBaseWidget):
+    pos = attr.ib(default=(0,0))
+    size = attr.ib(default=(0,0))
+
+
+@attr.s
+class PyguimeContainer(PyguimeClickable):
+    """ A container has other widgets inside it """
+
+    def draw(self):
+        """ produce a surface with image data on it, in (0,0) """
+        surface = pygame.Surface(self.size)
+
+        for c in self.children:
+            s = c.draw()
+            surface.blit(s, c.pos, (0, 0, c.size[0], c.size[1]))
+
+        return surface
+
+    def add(self, widget):
+        self.children.append(widget)
+
+    def get_widget_at_position(self, pos):
+        """ Return the widget that is at position pos """
+
+        cur_widget = None
+        for w in self.children:
+            if (w.pos[0] <= pos[0] and w.pos[0] + w.size[0] > pos[0] and
+                    w.pos[1] <= pos[1] and w.pos[1] + w.size[1] > pos[1]):
+                # Inside bounding box
+                cur_widget = w
+
+        return cur_widget
+
+
+    def container_handle_mouseclick(self, pos):
+        """ Process a mouse click in the container"""
+
+        print(f"CONTAINER click at {pos[0]} x {pos[1]}")
+        w = self.get_widget_at_position(pos)
+        print(f"Widget: {w}")
+
+        if w and w.click_callback:
+            rel_pos = (pos[0] - w.pos[0], pos[1] - w.pos[1])
+            w.click_callback(w, rel_pos)
+
+
+    children = attr.ib(default=[])
+    click_callback = attr.ib(default=container_handle_mouseclick)
+
+
+@attr.s
+class PyguimeWidget(PyguimeClickable):
+    """ Class to hold a widget. Widgets are objects that can be drawn on screen.
+        A widget is a container that can contain other widgets """
+
+    click_callback = attr.ib(default=None)
+
+    background = attr.ib(default=None)
+    image = attr.ib(default=None)
+
+    # The image function is used to draw the widget, if defined
+    image_function = attr.ib(default=None)
 
     _image_data = attr.ib(default=None)
 
@@ -93,6 +146,16 @@ class PyguimeTextbox(PyguimeWidget):
         surface.blit(widget_font.render(text, False, font_colour), (0, 0))
 
         return surface
+
+
+@attr.s
+class PyguimeKeypad(PyguimeContainer):
+    """ Keypad type object """
+
+    pass
+
+
+
 
 @attr.s
 class PyguimeScreen(object):

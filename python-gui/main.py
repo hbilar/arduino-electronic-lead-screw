@@ -130,17 +130,21 @@ def main():
                                             row * (key_size[1] + key_space[1])),
                                        size=key_size,
                                        background=(0,20*n,0),
-                                       data={'character': str(n), 'textbox_id': 'test'},
                                        click_callback=logic.keypad_button_callback
                                             )
         keypad_widgets.append(number)
+
+
+    container = pyguime.PyguimeContainer(name="container", pos=(100,300), size=(200,200))
+    container.add(pyguime.PyguimeWidget(name="c1", pos=(10, 20), size=(30, 50), background=(255,0,0)))
+    container.add(pyguime.PyguimeTextbox(name="t1", pos=(50, 0), size=(50, 20), font_size=10, font_colour=(0,255,0)))
 
     widgets = [ pyguime.PyguimeWidget(name="rect1", pos=(100,100), size=(50, 100), click_callback=logic.sample_button_callback),
                 pyguime.PyguimeWidget(name="rect2", pos=(10,10), size=(10, 10), background=(128, 0, 0)),
                 pyguime.PyguimeWidget(name="image", pos=(200, 200), size=(50, 50), image="images/ball.png"),
                 pyguime.PyguimeTextbox(name="imgfunc", pos=(300, 30), size=(100, 100), click_callback=logic.sample_button_callback),
                 pyguime.PyguimeTextbox(name="keypad_text", pos=(300, 230), size=(100, 100), text='test'),
-                ] + keypad_widgets
+                ] + keypad_widgets + [ container ]
 
 
     main_loop(pyguime_screen, widgets)
