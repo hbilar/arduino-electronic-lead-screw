@@ -139,12 +139,22 @@ def main():
     container.add(pyguime.PyguimeWidget(name="c1", pos=(10, 20), size=(30, 50), background=(255,0,0)))
     container.add(pyguime.PyguimeTextbox(name="t1", pos=(50, 0), size=(50, 20), font_size=10, font_colour=(0,255,0)))
 
+    container2 = pyguime.PyguimeContainer(name="container2", pos=(400,300), size=(200,200))
+    container2.add(pyguime.PyguimeWidget(name="c1", pos=(10, 20), size=(30, 50), background=(128,255,0)))
+    container2.add(pyguime.PyguimeTextbox(name="t1", pos=(50, 0), size=(50, 20), font_size=10, font_colour=(0,0, 255), text="test"))
+
+    keypad = pyguime.PyguimeKeypad(name="keypad1", pos=(300, 0), size=(110, 200), background=(50, 50, 50))
+    keypad.add_textbox(initial_text="textbox", size=(keypad.size[0], 30),
+                       font_size=30).\
+        add_keypad(pos=(0, 50))
+
+
     widgets = [ pyguime.PyguimeWidget(name="rect1", pos=(100,100), size=(50, 100), click_callback=logic.sample_button_callback),
                 pyguime.PyguimeWidget(name="rect2", pos=(10,10), size=(10, 10), background=(128, 0, 0)),
                 pyguime.PyguimeWidget(name="image", pos=(200, 200), size=(50, 50), image="images/ball.png"),
-                pyguime.PyguimeTextbox(name="imgfunc", pos=(300, 30), size=(100, 100), click_callback=logic.sample_button_callback),
+#                pyguime.PyguimeTextbox(name="imgfunc", pos=(300, 30), size=(100, 100), click_callback=logic.sample_button_callback),
                 pyguime.PyguimeTextbox(name="keypad_text", pos=(300, 230), size=(100, 100), text='test'),
-                ] + keypad_widgets + [ container ]
+                ] + keypad_widgets + [ container ] + [ keypad ] + [ container2]
 
 
     main_loop(pyguime_screen, widgets)
