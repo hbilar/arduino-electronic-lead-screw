@@ -148,13 +148,18 @@ def main():
                        font_size=30).\
         add_keypad(pos=(0, 50))
 
+    keypad2 = pyguime.PyguimeKeypad(name="keypad1", pos=(500, 0), size=(110, 200), background=(50, 50, 50))
+    keypad2.add_textbox(initial_text="mytext", size=(keypad2.size[0], 30),
+                        font_size=30). \
+        add_keypad(pos=(0, 50))
 
     widgets = [ pyguime.PyguimeWidget(name="rect1", pos=(100,100), size=(50, 100), click_callback=logic.sample_button_callback),
                 pyguime.PyguimeWidget(name="rect2", pos=(10,10), size=(10, 10), background=(128, 0, 0)),
                 pyguime.PyguimeWidget(name="image", pos=(200, 200), size=(50, 50), image="images/ball.png"),
 #                pyguime.PyguimeTextbox(name="imgfunc", pos=(300, 30), size=(100, 100), click_callback=logic.sample_button_callback),
                 pyguime.PyguimeTextbox(name="keypad_text", pos=(300, 230), size=(100, 100), text='test'),
-                ] + keypad_widgets + [ container ] + [ keypad ] + [ container2]
+                ] + keypad_widgets + [ container ] + [ keypad ] + [ container2] +\
+                [keypad2]
 
 
     main_loop(pyguime_screen, widgets)

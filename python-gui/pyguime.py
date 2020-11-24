@@ -9,8 +9,9 @@ HEIGHT = 480
 
 C_WHITE = (255, 255, 255)
 
-class TextboxType(enum.Enum):
-    NineAndTextbox = 1
+class KeypadFunction(enum.Enum):
+    Clear = 1
+    Backspace = 2
 
 
 class TextAlign(enum.Enum):
@@ -199,12 +200,47 @@ class PyguimeTextbox(PyguimeWidget):
 
 
 @attr.s
+class PyguimeKeypadKey(object):
+    """ Define a key """
+
+    display = attr.ib(default=None)
+    value = attr.ib(default=None)
+    function = attr.ib(default=None)
+
+    def __attrs_post_init__(self):
+        if not self.value:
+            self.value = self.display
+
+
+@attr.s
+class PyguimeKeypadLayout(object):
+    """ Define a keypad layout """
+
+    keys = attr.ib(default=[
+        [PyguimeKeypadKey(display='7'),
+         PyguimeKeypadKey(display='8'),
+         PyguimeKeypadKey(display='9'),
+         ],
+        [PyguimeKeypadKey(display='4'),
+         PyguimeKeypadKey(display='5'),
+         PyguimeKeypadKey(display='6'),
+         ],
+        [PyguimeKeypadKey(display='1'),
+         PyguimeKeypadKey(display='2'),
+         PyguimeKeypadKey(display='3'),
+         ],
+        [PyguimeKeypadKey(display='Clr', function=KeypadFunction.Clear),
+         PyguimeKeypadKey(display='0'),
+         PyguimeKeypadKey(display='.'),
+        ],
+        ])
+
+
+@attr.s
 class PyguimeKeypad(PyguimeContainer):
     """ Keypad type object """
 
     children = attr.ib(default=None)
-    layout = attr.ib(default=TextboxType.NineAndTextbox)
-
 
     def add_textbox(self, size=(100, 30), font_size=15,
                     font_colour=(255, 0, 0), pos=(0,0),
@@ -227,48 +263,41 @@ class PyguimeKeypad(PyguimeContainer):
             print(f"** ERROR: No widget named 'textbox' could be found")
             return
 
-        cur_val = textbox.text
-        cur_val = cur_val + widget.data.get('character', '')
-        print(f"Updating textbox to {cur_val}")
-
-        textbox.text = cur_val
-
+        if widget.data.get('function', None) == KeypadFunction.Clear:
+            textbox.text = ""
+        elif widget.data.get('function', None) == KeypadFunction.Backspace:
+            textbox.text = textbox.text[:-1]
+        else:
+            textbox.text = textbox.text + widget.data.get('character', '')
+            print(f"Updating textbox to {textbox.text}")
 
     def add_keypad(self, pos=(0,30), key_size=(30, 30), key_space=(10, 10),
-                   background=(100, 100, 100)):
+                   background=(100, 100, 100),
+                   layout=PyguimeKeypadLayout()):
+        """ Add a keypad (or other buttons) to a PyguimeKeypad. The
+            layout of the keys is defined by the PyguimeKeypadLayout object
+            passed in as the layout parameter """
 
-        # Set up a keypad
-        for n in range(0, 10):
-            if n == 0:
-                row = 3
-            elif n <= 3:
-                row = 2
-            elif n <= 6:
-                row = 1
-            else:
-                row = 0
+        for r in range(0, len(layout.keys)):
+            for c in range(0, len(layout.keys[r])):
+                k = layout.keys[r][c]
 
-            if n == 0:
-                col = 1
-            else:
-                col = (n - 1) % 3
-
-            number=PyguimeTextbox(name=f'num_{n}',
-                                  text=str(n),
-                                  pos=(pos[0] + col * (key_size[0] + key_space[0]),
-                                       pos[1] + row * (key_size[1] + key_space[1])),
-                                  size=key_size,
-                                  font_size=key_size[1],
-                                  valign=TextAlign.CENTER,
-                                  align=TextAlign.CENTER,
-                                  background=background,
-                                  click_callback=PyguimeKeypad._key_callback,
-                                  parent=self,
-                                  data={'character': str(n)}
-            )
-            self.add(number)
+                char = PyguimeTextbox(name=k.value,
+                                        text=k.display,
+                                      pos=(pos[0] + c * (key_size[0] + key_space[0]),
+                                           pos[1] + r * (key_size[1] + key_space[1])),
+                                      size=key_size,
+                                      font_size=key_size[1],
+                                      valign=TextAlign.CENTER,
+                                      align=TextAlign.CENTER,
+                                      background=background,
+                                      click_callback=PyguimeKeypad._key_callback,
+                                      parent=self,
+                                      data={'character': k.value,
+                                            'function': k.function}
+                                      )
+                self.add(char)
         return self
-
 
 
 @attr.s
@@ -277,7 +306,6 @@ class PyguimeScreen(object):
     screen = attr.ib(default=None)
     width = attr.ib(default=WIDTH)
     height = attr.ib(default=HEIGHT)
-
 
 
 def draw_widgets(surface, widgets):
