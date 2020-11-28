@@ -61,7 +61,7 @@ def cached_keypad(func):
 
 def main_loop(pyguime_screen, widgets):
 
-    gui_surface = pygame.Surface((pyguime.WIDTH, pyguime.HEIGHT)).convert()
+    gui_surface = pygame.Surface((pyguime_screen.width, pyguime_screen.height)).convert()
 
     running = True
 
@@ -85,7 +85,9 @@ def main_loop(pyguime_screen, widgets):
                     running = False
 
             if event.type == pygame.MOUSEBUTTONUP:
-                pyguime.handle_mouseclick(widgets, pygame.mouse.get_pos())
+                pyguime.handle_mouseclick_up(widgets, pygame.mouse.get_pos())
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                pyguime.handle_mouseclick_down(widgets, pygame.mouse.get_pos())
 
 
         # scale and blit to screen
@@ -99,13 +101,17 @@ def main():
     # create a screen to draw on
     pyguime_screen = pyguime.setup_screen(width=1024, height=600)
 
-    # widgets
+    # widgets - define
 
     keypad_widgets = [ ]
     key_size = (30, 30)
     key_space = (10, 5)
 
-    # Set up a keypad
+    # Set up a textbox and some small squares in a 3x4 pattern
+    keypad_widgets.append(pyguime.PyguimeTextbox(text="Random little widget",
+                                                 pos=(10, 10), size=(100, 50),
+                                                 font_colour=(255,0,0),
+                                                 transparent_background=True))
     for n in range (0,10):
         print(f'n = {n}')
 
@@ -125,8 +131,11 @@ def main():
 
         print(f"  n = {n},   col = {col},  row = {row}")
 
+        keypad_offset = (10, 30)
         number = pyguime.PyguimeWidget(name=f'num_{n}',
-                                       pos=(col * (key_size[0] + key_space[0]),
+                                       pos=(keypad_offset[0] +
+                                            col * (key_size[0] +key_space[0]),
+                                            keypad_offset[1] +
                                             row * (key_size[1] + key_space[1])),
                                        size=key_size,
                                        background=(0,20*n,0),
@@ -145,21 +154,36 @@ def main():
 
     keypad = pyguime.PyguimeKeypad(name="keypad1", pos=(300, 0), size=(110, 200), background=(50, 50, 50))
     keypad.add_textbox(initial_text="textbox", size=(keypad.size[0], 30),
-                       font_size=30).\
-        add_keypad(pos=(0, 50))
+                       font_size=30, font_colour=(255, 0, 128)).\
+        generate(pos=(0, 50), font_colour=(255, 0, 255))
 
     keypad2 = pyguime.PyguimeKeypad(name="keypad1", pos=(500, 0), size=(110, 200), background=(50, 50, 50))
     keypad2.add_textbox(initial_text="mytext", size=(keypad2.size[0], 30),
                         font_size=30). \
-        add_keypad(pos=(0, 50))
+        generate(pos=(0, 50))
+
+
+    button1 = pyguime.PyguimeButton(name="button1", pos=(600,200)).generate()
+    sticky_button1 = pyguime.PyguimeButton(name="sticky_button1", pos=(600,280),
+                                           text="sticky", sticky=True).generate()
+
+    # multi checkbox container with a label
+    cb_label = pyguime.PyguimeTextbox(name="myalbel", text="my label", transparent_background=True).generate()
+    checkbox_1 = pyguime.PyguimeCheckbox(name="checkbox1", text="check me").generate()
+    checkbox_2 = pyguime.PyguimeCheckbox(name="checkbox2", text="second").generate()
+
+    checkboxes=pyguime.PyguimeContainer(pos=(100, 100), auto_size=True, background=(128, 128, 128)).\
+        add_object_linear(cb_label, vertical=True).\
+        add_object_linear(checkbox_1, vertical=True).\
+        add_object_linear(checkbox_2, vertical=True).\
+        generate()
+    #text = "check me", sticky = True).generate()
 
     widgets = [ pyguime.PyguimeWidget(name="rect1", pos=(100,100), size=(50, 100), click_callback=logic.sample_button_callback),
-                pyguime.PyguimeWidget(name="rect2", pos=(10,10), size=(10, 10), background=(128, 0, 0)),
                 pyguime.PyguimeWidget(name="image", pos=(200, 200), size=(50, 50), image="images/ball.png"),
-#                pyguime.PyguimeTextbox(name="imgfunc", pos=(300, 30), size=(100, 100), click_callback=logic.sample_button_callback),
                 pyguime.PyguimeTextbox(name="keypad_text", pos=(300, 230), size=(100, 100), text='test'),
                 ] + keypad_widgets + [ container ] + [ keypad ] + [ container2] +\
-                [keypad2]
+                [keypad2, button1, sticky_button1, checkboxes ]
 
 
     main_loop(pyguime_screen, widgets)
