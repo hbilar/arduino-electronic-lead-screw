@@ -103,10 +103,6 @@ class PyguimeClickable(PyguimeBaseWidget):
 class PyguimeContainer(PyguimeClickable):
     """ A container has other widgets inside it """
 
-    cur_y = attr.ib(default=0)
-
-    auto_size = attr.ib(default=True)
-
     def add_object(self, obj):
         obj.pos = (obj.pos[0], obj.pos[1] + self.cur_y)
         obj.parent = self
@@ -184,8 +180,6 @@ class PyguimeContainer(PyguimeClickable):
             rel_pos = (pos[0] - w.pos[0], pos[1] - w.pos[1])
             w.click_callback(w, rel_pos)
 
-    click_callback = attr.ib(default=container_handle_mouseclick)
-
 
     def generate(self):
         if self.auto_size:
@@ -204,20 +198,15 @@ class PyguimeContainer(PyguimeClickable):
 
         return self
 
+    cur_y = attr.ib(default=0)
+    auto_size = attr.ib(default=True)
+    click_callback = attr.ib(default=container_handle_mouseclick)
+
 
 @attr.s
 class PyguimeWidget(PyguimeClickable):
     """ Class to hold a widget. Widgets are objects that can be drawn on screen.
         A widget is a container that can contain other widgets """
-
-    click_callback = attr.ib(default=None)
-
-    image = attr.ib(default=None)
-
-    # The image function is used to draw the widget, if defined
-    image_function = attr.ib(default=None)
-
-    _image_data = attr.ib(default=None)
 
     def draw(self):
         """ produce a surface with image data on it, in (0,0) """
@@ -241,36 +230,18 @@ class PyguimeWidget(PyguimeClickable):
 
         return surface
 
+    click_callback = attr.ib(default=None)
+    image = attr.ib(default=None)
+
+    # The image function is used to draw the widget, if defined
+    image_function = attr.ib(default=None)
+    _image_data = attr.ib(default=None)
+
 
 @attr.s
 class PyguimeButton(PyguimeClickable):
     """ A single, clickable button """
 
-    text = attr.ib(default="button")
-
-    # Is the button sticky (does it stay selected)?
-    sticky = attr.ib(default=False)
-    # If the button is sticky, is it currently down?
-    is_down= attr.ib(default=False)
-
-    # fixme: all this should really be a style type object...
-    font = attr.ib(default="Comic Sans MS")
-    font_size = attr.ib(default=15)
-    font_colour = attr.ib(default=(0,0,0))
-    align = attr.ib(default=TextAlign.CENTER)
-    valign = attr.ib(default=TextAlign.CENTER)
-    background = attr.ib(default=(200, 200, 200))
-    background_mouse_down = attr.ib(default=(255, 0, 0))
-    background_selected = attr.ib(default=(100, 100, 100))
-    bottom_shading_colour = attr.ib(default=(60, 60, 60))
-    top_shading_colour = attr.ib(default=(255, 255, 255))
-    outline_line_width = attr.ib(default=3)
-
-    size = attr.ib(default=(100, 50))
-
-    # colour to make transparent in the blit (used for the textbox we use
-    # for the text of the button
-    colour_key = attr.ib(default=(1,2,3))
 
 
     def draw(self):
@@ -322,7 +293,6 @@ class PyguimeButton(PyguimeClickable):
             self.is_down = not self.is_down
 
 
-    click_callback = attr.ib(default=button_handle_mouseclick)
 
     def generate(self):
         self.add(PyguimeTextbox(name=f"textbox_{self.name}", size=self.size,
@@ -333,16 +303,39 @@ class PyguimeButton(PyguimeClickable):
                                 transparent_background=True))
         return self
 
+
+    text = attr.ib(default="button")
+
+    # Is the button sticky (does it stay selected)?
+    sticky = attr.ib(default=False)
+    # If the button is sticky, is it currently down?
+    is_down = attr.ib(default=False)
+
+    # fixme: all this should really be a style type object...
+    font = attr.ib(default="Comic Sans MS")
+    font_size = attr.ib(default=15)
+    font_colour = attr.ib(default=(0, 0, 0))
+    align = attr.ib(default=TextAlign.CENTER)
+    valign = attr.ib(default=TextAlign.CENTER)
+    background = attr.ib(default=(200, 200, 200))
+    background_mouse_down = attr.ib(default=(255, 0, 0))
+    background_selected = attr.ib(default=(100, 100, 100))
+    bottom_shading_colour = attr.ib(default=(60, 60, 60))
+    top_shading_colour = attr.ib(default=(255, 255, 255))
+    outline_line_width = attr.ib(default=3)
+
+    size = attr.ib(default=(100, 50))
+
+    # colour to make transparent in the blit (used for the textbox we use
+    # for the text of the button
+    colour_key = attr.ib(default=(1, 2, 3))
+
+    click_callback = attr.ib(default=button_handle_mouseclick)
+
+
 @attr.s
 class PyguimeCheckbox(PyguimeButton):
     """ Class to handle a single checkbox """
-
-    checkbox_size = attr.ib(default=(20, 20))
-    checkbox_offset = attr.ib(default=(5, 10))
-    # How much to offset the text label from the button rect
-    text_offset = attr.ib(default=(5, 0))
-
-    sticky = attr.ib(default=True)
 
     def draw(self):
         """ produce a surface with image data on it, in (0,0) """
@@ -385,14 +378,17 @@ class PyguimeCheckbox(PyguimeButton):
                                 offset=(self.checkbox_size[0] + self.checkbox_offset[0] + self.text_offset[0], self.text_offset[1])))
         return self
 
+    checkbox_size = attr.ib(default=(20, 20))
+    checkbox_offset = attr.ib(default=(5, 10))
+    # How much to offset the text label from the button rect
+    text_offset = attr.ib(default=(5, 0))
+
+    sticky = attr.ib(default=True)
+
+
 @attr.s
 class PyguimeCheckboxes(PyguimeContainer):
     """ Class to handle a several checkboxes """
-
-    children = attr.ib(default=None)
-
-    cur_y = attr.ib(default=0)
-
 
     def add_object_linear(self, obj, vertical=True):
         """ Add a widget to the container in either a horizontal
@@ -403,35 +399,19 @@ class PyguimeCheckboxes(PyguimeContainer):
         self.cur_y = self.cur_y + obj.size[1]
         return self
 
-
     def generate(self):
-
+        """ Method to finalize the checkboxes. At the moment all it
+            does is resize the container for the checkboxes... """
         if self.auto_size:
             self.size=(self.size[0], self.cur_y)
-
         return self
+
+    cur_y = attr.ib(default=0)
 
 
 @attr.s
 class PyguimeTextbox(PyguimeWidget):
-    """ Class to hold textbox data """
-
-    text = attr.ib(default="default text")
-    font = attr.ib(default="Comic Sans MS")
-
-    font_size = attr.ib(default=15)
-    font_colour = attr.ib(default=(0,0,0))
-
-    align = attr.ib(default=TextAlign.LEFT)
-    valign = attr.ib(default=TextAlign.TOP)
-
-    offset = attr.ib(default=(0, 0))
-
-    transparent_background = attr.ib(default=False)
-    transparent_colour = attr.ib(default=COL_TRANSPARENT)
-
-    auto_size = attr.ib(default=True)
-
+    """ Class to hold textbox data (like a label etc) """
 
     def generate(self):
         """ clean up class data """
@@ -442,7 +422,6 @@ class PyguimeTextbox(PyguimeWidget):
                 self.size = (font_rect[2], font_rect[3])
 
         return self
-
 
     def get_text(self):
         return self.text
@@ -458,7 +437,6 @@ class PyguimeTextbox(PyguimeWidget):
         font_surface = widget_font.render(self.text, False, self.font_colour)
 
         return font_surface
-
 
     def draw(self):
         """ Draw a piece of text (widget.data['text]) on a surface """
@@ -498,6 +476,22 @@ class PyguimeTextbox(PyguimeWidget):
         # finally draw the font image onto the right place in the surface
         surface.blit(font_surface, align_pos)
         return surface
+
+    text = attr.ib(default="default text")
+    font = attr.ib(default="Comic Sans MS")
+
+    font_size = attr.ib(default=15)
+    font_colour = attr.ib(default=(0,0,0))
+
+    align = attr.ib(default=TextAlign.LEFT)
+    valign = attr.ib(default=TextAlign.TOP)
+
+    offset = attr.ib(default=(0, 0))
+
+    transparent_background = attr.ib(default=False)
+    transparent_colour = attr.ib(default=COL_TRANSPARENT)
+
+    auto_size = attr.ib(default=True)
 
 
 @attr.s
@@ -540,8 +534,6 @@ class PyguimeKeypadLayout(object):
 @attr.s
 class PyguimeKeypad(PyguimeContainer):
     """ Keypad type object """
-
-    children = attr.ib(default=None)
 
     def add_textbox(self, size=(100, 30), font_size=15,
                     font_colour=(255, 0, 0), pos=(0,0),
@@ -600,6 +592,8 @@ class PyguimeKeypad(PyguimeContainer):
                 self.add(char)
         return self
 
+    children = attr.ib(default=None)
+
 
 @attr.s
 class PyguimeScreen(object):
@@ -613,7 +607,6 @@ def draw_widgets(surface, widgets):
     """ Draw the pyguime widgets onto the surface"""
 
     for w in widgets:
-
         w_surface = w.draw()
         if w_surface:
             surface.blit(w_surface, w.pos, (0, 0, w.size[0], w.size[1]))
@@ -642,7 +635,6 @@ def _clear_downclick_status(widgets):
     """ Set the down click property to False for all widgets that
         have the down click property """
     for w in widgets:
-
         # clear any child objects
         if hasattr(w, "children") and w.children:
             _clear_downclick_status(w.children)
