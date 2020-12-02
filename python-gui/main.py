@@ -70,7 +70,6 @@ def main_loop(pyguime_screen, widgets):
         gui_surface.fill((0, 0, 128))
         gui_surface = pyguime.draw_widgets(gui_surface, widgets)
 
-
         # Handle pygame events (button presses etc)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -172,19 +171,29 @@ def main():
     checkbox_1 = pyguime.PyguimeCheckbox(name="checkbox1", text="check me").generate()
     checkbox_2 = pyguime.PyguimeCheckbox(name="checkbox2", text="second").generate()
 
-    checkboxes=pyguime.PyguimeContainer(pos=(100, 100), auto_size=True, background=(128, 128, 128)).\
+    checkboxes=pyguime.PyguimeContainer(name="checkboxes", pos=(100, 100), auto_size=True, background=(128, 128, 128)).\
         add_object_linear(cb_label, vertical=True).\
         add_object_linear(checkbox_1, vertical=True).\
         add_object_linear(checkbox_2, vertical=True).\
         generate()
     #text = "check me", sticky = True).generate()
 
+    # radio button
+    radio_1 = pyguime.PyguimeCheckbox(name="radio1", text="rad 1", exclusive_group_id="radio1").generate()
+    radio_2 = pyguime.PyguimeCheckbox(name="radio1", text="rad 1", exclusive_group_id="radio1", is_down=True).generate()
+
+    radio_buttons = pyguime.PyguimeContainer(name="radiobuttons", pos=(300, 100), auto_size=True,
+                                             background=(128, 128, 128)). \
+        add_object_linear(cb_label, vertical=True). \
+        add_object_linear(radio_1, vertical=True). \
+        add_object_linear(radio_2, vertical=True). \
+        generate()
+
     widgets = [ pyguime.PyguimeWidget(name="rect1", pos=(100,100), size=(50, 100), click_callback=logic.sample_button_callback),
                 pyguime.PyguimeWidget(name="image", pos=(200, 200), size=(50, 50), image="images/ball.png"),
                 pyguime.PyguimeTextbox(name="keypad_text", pos=(300, 230), size=(100, 100), text='test'),
                 ] + keypad_widgets + [ container ] + [ keypad ] + [ container2] +\
-                [keypad2, button1, sticky_button1, checkboxes ]
-
+                [keypad2, button1, sticky_button1, checkboxes, radio_buttons ]
 
     main_loop(pyguime_screen, widgets)
      

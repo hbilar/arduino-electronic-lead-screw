@@ -27,6 +27,9 @@ class TextAlign(enum.Enum):
 
 image_data = {}
 
+# Radio buttons keep track of their own "exclusion groups" in this global dict
+radio_exclusion_list = {}
+
 @attr.s
 class PyguimeEvent(object):
     # pygame.events
@@ -77,7 +80,6 @@ class PyguimeClickable(PyguimeBaseWidget):
         """
 
         print(f"DEFAULT CLICK CALLBACK: {self}")
-
         if self.propagate_click and self.parent:
             if self.parent.click_callback:
                 self.parent.click_callback(pos)
@@ -95,6 +97,28 @@ class PyguimeClickable(PyguimeBaseWidget):
         else:
             return DEFAULT_BG_COLOUR
 
+
+    def get_children_with_attribute(self, attribute_name, filter=None):
+        """ Return a list of child widgets that have a particular attribute
+            (whether set or not )"""
+
+        c = []
+        if hasattr(self, attribute_name):
+            c.append(self)
+
+        if hasattr(self, 'children'):
+            if self.children:
+                for w in self.children:
+                    r = w.get_children_with_attribute(attribute_name)
+                    if r:
+                        if filter:
+                            # check filter function
+                            if filter(c):
+                                c = c + r
+                        else:
+                            c = c + r
+
+        return c
 
     click_callback = attr.ib(default=_default_click_callback)
 
@@ -171,7 +195,6 @@ class PyguimeContainer(PyguimeClickable):
                 return w
 
         return None
-
 
     def container_handle_mouseclick(self, pos):
         """ Process a mouse click in the container"""
@@ -313,7 +336,6 @@ class PyguimeButton(PyguimeClickable):
 
         return surface
 
-
     def button_handle_mouseclick(self, pos):
         """ Process a mouse click in the container"""
 
@@ -333,6 +355,7 @@ class PyguimeButton(PyguimeClickable):
                                 transparent_background=True))
         return self
 
+
 @attr.s
 class PyguimeCheckbox(PyguimeButton):
     """ Class to handle a single checkbox """
@@ -342,25 +365,50 @@ class PyguimeCheckbox(PyguimeButton):
     # How much to offset the text label from the button rect
     text_offset = attr.ib(default=(5, 0))
 
+    # string to identify exclusion groups. Only one item in the exclusion group
+    # may be "is_down" at any one time
+    exclusive_group_id = attr.ib(default=None)
+
     sticky = attr.ib(default=True)
 
     def draw(self):
         """ produce a surface with image data on it, in (0,0) """
         surface = pygame.Surface(self.size)
-        pygame.draw.rect(surface, self.background, pygame.Rect((0, 0), self.size))
+
+        is_radio_button = self.exclusive_group_id is not None
 
         # simple background
         if self._mouse_is_down:
+            # draw a red box to indicate a click
             pygame.draw.rect(surface, self.background_mouse_down,
                              pygame.Rect((0, 0), self.size))
         else:
-            bg = self.background_selected if self.is_down else self.background
+            # draw normal background
+            pygame.draw.rect(surface, self.background, pygame.Rect((0, 0), self.size))
+
+        bg = self.background_selected if (self.is_down or self._mouse_is_down) else self.background
+        # This draws the actual little box to tick
+        if is_radio_button:
+            radius_x = self.checkbox_size[0]/2
+            radius_y = self.checkbox_size[1]/2
+
+            # background of circle
+            pygame.draw.circle(surface, bg,
+                               (self.checkbox_offset[0] + radius_x,
+                                self.checkbox_offset[1] + radius_y),
+                                radius_x)
+            # outline of circle
+            pygame.draw.circle(surface, (0,0,0),
+                               (self.checkbox_offset[0] + radius_x,
+                                self.checkbox_offset[1] + radius_y),
+                               radius_x, 1)
+        else:
+            # background of little square for checkbox
             pygame.draw.rect(surface, bg,
                              pygame.Rect(self.checkbox_offset, self.checkbox_size))
-
-        # rect around the checkbox
-        pygame.draw.rect(surface, (0, 0, 0),
-                         pygame.Rect(self.checkbox_offset, self.checkbox_size), 1)
+            # outline around the checkbox
+            pygame.draw.rect(surface, (0, 0, 0),
+                             pygame.Rect(self.checkbox_offset, self.checkbox_size), 1)
 
         # add any text or other child objects
         if self.children:
@@ -370,8 +418,34 @@ class PyguimeCheckbox(PyguimeButton):
 
         return surface
 
+    def button_handle_mouseclick(self, pos):
+        """ Process a mouse click in the container"""
+
+        if self.exclusive_group_id is None:
+            # Normal button - just bubble click up..
+            super().button_handle_mouseclick(pos)
+        else:
+            # radio style button
+
+            # make sure that none of the other items in the list are "is_down"
+            for w in radio_exclusion_list.get(self.exclusive_group_id, []):
+                print(f"   EXCLUSIVE LIST:  w = {w}")
+                if hasattr(w, "is_down"):
+                    w.is_down = False
+            # and record ourselves as is_down
+            self.is_down = True
+
+    click_callback = attr.ib(default=button_handle_mouseclick)
+
     def generate(self):
         self.sticky = True
+
+        if self.exclusive_group_id is not None:
+            global radio_exclusion_list
+            if not radio_exclusion_list.get(self.exclusive_group_id, None):
+                radio_exclusion_list[self.exclusive_group_id] = []
+
+            radio_exclusion_list[self.exclusive_group_id].append(self)
 
         self.checkbox_offset = (self.checkbox_offset[0],
                                 (self.size[1]-self.checkbox_size[1])/2)
@@ -383,32 +457,6 @@ class PyguimeCheckbox(PyguimeButton):
                                 click_callback=self.click_callback,
                                 transparent_background=True,
                                 offset=(self.checkbox_size[0] + self.checkbox_offset[0] + self.text_offset[0], self.text_offset[1])))
-        return self
-
-@attr.s
-class PyguimeCheckboxes(PyguimeContainer):
-    """ Class to handle a several checkboxes """
-
-    children = attr.ib(default=None)
-
-    cur_y = attr.ib(default=0)
-
-
-    def add_object_linear(self, obj, vertical=True):
-        """ Add a widget to the container in either a horizontal
-            or vertical fashion """
-        obj.pos = (obj.pos[0], obj.pos[1] + self.cur_y)
-        self.add(obj)
-
-        self.cur_y = self.cur_y + obj.size[1]
-        return self
-
-
-    def generate(self):
-
-        if self.auto_size:
-            self.size=(self.size[0], self.cur_y)
-
         return self
 
 
@@ -431,7 +479,6 @@ class PyguimeTextbox(PyguimeWidget):
     transparent_colour = attr.ib(default=COL_TRANSPARENT)
 
     auto_size = attr.ib(default=True)
-
 
     def generate(self):
         """ clean up class data """
@@ -608,7 +655,6 @@ class PyguimeScreen(object):
     width = attr.ib(default=WIDTH)
     height = attr.ib(default=HEIGHT)
 
-
 def draw_widgets(surface, widgets):
     """ Draw the pyguime widgets onto the surface"""
 
@@ -620,7 +666,6 @@ def draw_widgets(surface, widgets):
 
 
     return surface
-
 
 def get_widget_at_position(widgets, pos):
     """ Return the widget that is at position pos """
@@ -702,4 +747,3 @@ def setup_screen(width=WIDTH, height=HEIGHT):
     return PyguimeScreen(screen=pygame.display.set_mode((width, height)),
                          width=width,
                          height=height)
-
