@@ -741,6 +741,35 @@ def handle_mouseclick_down(widgets, pos):
             w._mouse_down_pos = rel_pos
 
 
+def find_widgets_by_filter(widgets, filter):
+    """ Return all widgets from widgets list where the filter evaluates to True """
+
+    r = []
+    for w in widgets:
+        if filter(w):
+            print(f"ADDING WIDGET: {w}")
+            r.append(w)
+
+        # child widgets?
+        if hasattr(w, 'children'):
+            if w.children:
+                c = find_widgets_by_filter(w.children, filter)
+                r = r + c
+    return r
+
+
+def find_widgets_by_name(widgets, name):
+    """ Return all widgets that have the name 'name'. Also looks in child
+        widgets """
+    return find_widgets_by_filter(widgets, lambda x: x.name == name )
+
+
+def find_widgets_that_are_down(widgets):
+    """ Return all widgets that have the is_down property (buttons mainly),
+        and where the is_down property is True """
+    return find_widgets_by_filter(widgets, lambda x: hasattr(x, 'is_down') and x.is_down)
+
+
 def setup_screen(width=WIDTH, height=HEIGHT):
     pygame.init()
 

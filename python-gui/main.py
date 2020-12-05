@@ -67,6 +67,15 @@ def main_loop(pyguime_screen, widgets):
 
 
     while running:
+
+        # Buttons that are clicked
+        # is_down_widgets = pyguime.find_widgets_by_name(widgets, 'c1')
+        # is_down_widgets = pyguime.find_widgets_by_filter(widgets, lambda x: hasattr(x, 'is_down') and x.is_down)
+        is_down_widgets = pyguime.find_widgets_that_are_down(widgets)
+        for w in is_down_widgets:
+            print(f"    is_down_widget: {w}")
+
+
         gui_surface.fill((0, 0, 128))
         gui_surface = pyguime.draw_widgets(gui_surface, widgets)
 
