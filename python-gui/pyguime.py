@@ -389,8 +389,8 @@ class PyguimeCheckbox(PyguimeButton):
         bg = self.background_selected if (self.is_down or self._mouse_is_down) else self.background
         # This draws the actual little box to tick
         if is_radio_button:
-            radius_x = self.checkbox_size[0]/2
-            radius_y = self.checkbox_size[1]/2
+            radius_x = int(self.checkbox_size[0]/2)
+            radius_y = int(self.checkbox_size[1]/2)
 
             # background of circle
             pygame.draw.circle(surface, bg,
@@ -448,7 +448,7 @@ class PyguimeCheckbox(PyguimeButton):
             radio_exclusion_list[self.exclusive_group_id].append(self)
 
         self.checkbox_offset = (self.checkbox_offset[0],
-                                (self.size[1]-self.checkbox_size[1])/2)
+                                int((self.size[1]-self.checkbox_size[1])/2))
 
         self.add(PyguimeTextbox(name=f"textbox_{self.name}", size=self.size,
                                 text=self.text, font_size=self.font_size,
@@ -747,7 +747,6 @@ def find_widgets_by_filter(widgets, filter):
     r = []
     for w in widgets:
         if filter(w):
-            print(f"ADDING WIDGET: {w}")
             r.append(w)
 
         # child widgets?

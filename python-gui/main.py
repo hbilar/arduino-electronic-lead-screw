@@ -62,9 +62,7 @@ def cached_keypad(func):
 def main_loop(pyguime_screen, widgets):
 
     gui_surface = pygame.Surface((pyguime_screen.width, pyguime_screen.height)).convert()
-
     running = True
-
 
     while running:
 
@@ -72,8 +70,9 @@ def main_loop(pyguime_screen, widgets):
         # is_down_widgets = pyguime.find_widgets_by_name(widgets, 'c1')
         # is_down_widgets = pyguime.find_widgets_by_filter(widgets, lambda x: hasattr(x, 'is_down') and x.is_down)
         is_down_widgets = pyguime.find_widgets_that_are_down(widgets)
-        for w in is_down_widgets:
-            print(f"    is_down_widget: {w}")
+#        print("####")
+#        for w in is_down_widgets:
+#            print(f"    is_down_widget: {w}")
 
 
         gui_surface.fill((0, 0, 128))
