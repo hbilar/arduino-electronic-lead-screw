@@ -6,7 +6,6 @@ import attr
 
 import enum
 
-
 WIDTH = 640
 HEIGHT = 480
 
@@ -14,6 +13,7 @@ C_WHITE = (255, 255, 255)
 DEFAULT_BG_COLOUR = (255, 255, 255)
 
 COL_TRANSPARENT = (1, 2, 3)
+
 
 class KeypadFunction(enum.Enum):
     Clear = 1
@@ -30,6 +30,7 @@ class TextAlign(enum.Enum):
 
 # Radio buttons keep track of their own "exclusion groups" in this global dict
 radio_exclusion_list = {}
+
 
 @attr.s
 class PyguimeEvent(object):
@@ -50,16 +51,16 @@ class PyguimeBaseWidget(object):
 
 @attr.s
 class PyguimeClickable(PyguimeBaseWidget):
-    pos = attr.ib(default=(0,0))
-    size = attr.ib(default=(0,0))
-    background = attr.ib(default=(0,0,0))
+    pos = attr.ib(default=(0, 0))
+    size = attr.ib(default=(0, 0))
+    background = attr.ib(default=(0, 0, 0))
 
     # propagate clicks to parent instead of handling locally
     propagate_click = attr.ib(default=True)
 
     # Is the mouse down on this widget at the moment?
     _mouse_is_down = attr.ib(default=False)
-    _mouse_down_pos = attr.ib(default=(0,0))
+    _mouse_down_pos = attr.ib(default=(0, 0))
 
     children = attr.ib(default=None)
 
@@ -101,8 +102,7 @@ class PyguimeClickable(PyguimeBaseWidget):
         else:
             return DEFAULT_BG_COLOUR
 
-
-    def get_children_with_attribute(self, attribute_name, filter=None):
+    def get_children_with_attribute(self, attribute_name, filter_func=None):
         """ Return a list of child widgets that have a particular attribute
             (whether set or not )"""
 
@@ -115,18 +115,18 @@ class PyguimeClickable(PyguimeBaseWidget):
                 for w in self.children:
                     r = w.get_children_with_attribute(attribute_name)
                     if r:
-                        if filter:
+                        if filter_func:
                             # check filter function
-                            if filter(c):
+                            if filter_func(c):
                                 c = c + r
                         else:
                             c = c + r
-
         return c
 
     handle_click_callback = attr.ib(default=_default_click_callback)
 
     click_callback = attr.ib(default=None)
+
 
 @attr.s
 class PyguimeContainer(PyguimeClickable):
@@ -145,9 +145,8 @@ class PyguimeContainer(PyguimeClickable):
         self.cur_y = self.cur_y + obj.size[1]
         return self
 
-    def add_object_linear(self, obj, vertical=True):
-        """ Add a widget to the container in either a horizontal
-            or vertical fashion """
+    def add_object_linear(self, obj):
+        """ Add a widget to the container in a vertical fashion """
         obj.pos = (obj.pos[0], obj.pos[1] + self.cur_y)
         obj.parent = self
         self.add(obj)
@@ -182,8 +181,8 @@ class PyguimeContainer(PyguimeClickable):
 
         cur_widget = None
         for w in self.children:
-            if (w.pos[0] <= pos[0] and w.pos[0] + w.size[0] > pos[0] and
-                    w.pos[1] <= pos[1] and w.pos[1] + w.size[1] > pos[1]):
+            if (w.pos[0] <= pos[0] < w.pos[0] + w.size[0] and
+                    w.pos[1] <= pos[1] < w.pos[1] + w.size[1]):
                 # Inside bounding box
                 # note - not returning at first hit, in case we have overlapping
                 # widgets we want to pick the last one ("last in stack"), as that
@@ -214,12 +213,11 @@ class PyguimeContainer(PyguimeClickable):
 
     handle_click_callback = attr.ib(default=container_handle_mouseclick)
 
-
     def generate(self):
         if self.auto_size:
             # calculate bounding box for all the children in the container
 
-            cur_max = [ 0, 0]
+            cur_max = [0, 0]
             for w in self.children:
                 size = w.draw().get_size()
 
@@ -228,7 +226,7 @@ class PyguimeContainer(PyguimeClickable):
                 if w.pos[1] + size[1] > cur_max[1]:
                     cur_max[1] = w.pos[1] + size[1]
 
-            self.size=(cur_max[0], cur_max[1])
+            self.size = (cur_max[0], cur_max[1])
 
         return self
 
@@ -258,13 +256,13 @@ class PyguimeWidget(PyguimeClickable):
             surface.blit(self._image_data, (0, 0), (0, 0, self.size[0], self.size[1]))
         elif self.image_function:
             # A function to draw the image exists
-            surface.blit(self.image_function(), (0,0), (0, 0, self.size[0], self.size[1]))
+            surface.blit(self.image_function(), (0, 0), (0, 0, self.size[0], self.size[1]))
         elif self.background:
             # simple background
             pygame.draw.rect(surface, self.background, pygame.Rect((0, 0), self.size))
         else:
             # default to just an outline
-            pygame.draw.rect(surface, C_WHITE, pygame.Rect((0,0), self.size), 1)
+            pygame.draw.rect(surface, C_WHITE, pygame.Rect((0, 0), self.size), 1)
 
         return surface
 
@@ -278,12 +276,12 @@ class PyguimeButton(PyguimeClickable):
     # Is the button sticky (does it stay selected)?
     sticky = attr.ib(default=False)
     # If the button is sticky, is it currently down?
-    is_down= attr.ib(default=False)
+    is_down = attr.ib(default=False)
 
     # fixme: all this should really be a style type object...
     font = attr.ib(default="Comic Sans MS")
     font_size = attr.ib(default=15)
-    font_colour = attr.ib(default=(0,0,0))
+    font_colour = attr.ib(default=(0, 0, 0))
     align = attr.ib(default=TextAlign.CENTER)
     valign = attr.ib(default=TextAlign.CENTER)
     background = attr.ib(default=(200, 200, 200))
@@ -297,8 +295,7 @@ class PyguimeButton(PyguimeClickable):
 
     # colour to make transparent in the blit (used for the textbox we use
     # for the text of the button
-    colour_key = attr.ib(default=(1,2,3))
-
+    colour_key = attr.ib(default=(1, 2, 3))
 
     def draw(self):
         """ produce a surface with image data on it, in (0,0) """
@@ -350,7 +347,6 @@ class PyguimeButton(PyguimeClickable):
         if self.click_callback:
             self.click_callback(self, pos)
 
-
     handle_click_callback = attr.ib(default=button_handle_mouseclick)
 
     def generate(self):
@@ -396,16 +392,16 @@ class PyguimeCheckbox(PyguimeButton):
         bg = self.background_selected if (self.is_down or self._mouse_is_down) else self.background
         # This draws the actual little box to tick
         if is_radio_button:
-            radius_x = int(self.checkbox_size[0]/2)
-            radius_y = int(self.checkbox_size[1]/2)
+            radius_x = int(self.checkbox_size[0] / 2)
+            radius_y = int(self.checkbox_size[1] / 2)
 
             # background of circle
             pygame.draw.circle(surface, bg,
                                (self.checkbox_offset[0] + radius_x,
                                 self.checkbox_offset[1] + radius_y),
-                                radius_x)
+                               radius_x)
             # outline of circle
-            pygame.draw.circle(surface, (0,0,0),
+            pygame.draw.circle(surface, (0, 0, 0),
                                (self.checkbox_offset[0] + radius_x,
                                 self.checkbox_offset[1] + radius_y),
                                radius_x, 1)
@@ -454,7 +450,7 @@ class PyguimeCheckbox(PyguimeButton):
             radio_exclusion_list[self.exclusive_group_id].append(self)
 
         self.checkbox_offset = (self.checkbox_offset[0],
-                                int((self.size[1]-self.checkbox_size[1])/2))
+                                int((self.size[1] - self.checkbox_size[1]) / 2))
 
         self.add(PyguimeTextbox(name=f"textbox_{self.name}", size=self.size,
                                 text=self.text, font_size=self.font_size,
@@ -462,7 +458,8 @@ class PyguimeCheckbox(PyguimeButton):
                                 valign=self.valign,
                                 handle_click_callback=self.handle_click_callback,
                                 transparent_background=True,
-                                offset=(self.checkbox_size[0] + self.checkbox_offset[0] + self.text_offset[0], self.text_offset[1])))
+                                offset=(self.checkbox_size[0] + self.checkbox_offset[0] + self.text_offset[0],
+                                        self.text_offset[1])))
         return self
 
 
@@ -474,7 +471,7 @@ class PyguimeTextbox(PyguimeWidget):
     font = attr.ib(default="Comic Sans MS")
 
     font_size = attr.ib(default=15)
-    font_colour = attr.ib(default=(0,0,0))
+    font_colour = attr.ib(default=(0, 0, 0))
 
     align = attr.ib(default=TextAlign.LEFT)
     valign = attr.ib(default=TextAlign.TOP)
@@ -490,12 +487,11 @@ class PyguimeTextbox(PyguimeWidget):
         """ clean up class data """
 
         if self.auto_size and self.size == (0, 0):
-                font_surface = self.get_text_surface()
-                font_rect =font_surface.get_rect()
-                self.size = (font_rect[2], font_rect[3])
+            font_surface = self.get_text_surface()
+            font_rect = font_surface.get_rect()
+            self.size = (font_rect[2], font_rect[3])
 
         return self
-
 
     def get_text(self):
         return self.text
@@ -511,7 +507,6 @@ class PyguimeTextbox(PyguimeWidget):
         font_surface = widget_font.render(self.text, False, self.font_colour)
 
         return font_surface
-
 
     def draw(self):
         """ Draw a piece of text (widget.data['text]) on a surface """
@@ -531,18 +526,18 @@ class PyguimeTextbox(PyguimeWidget):
         font_surface = self.get_text_surface()
         font_rect = font_surface.get_rect()
 
-        align_pos = (0, 0) # default:  align = LEFT, valign = TOP
+        align_pos = (0, 0)  # default:  align = LEFT, valign = TOP
         # horizontal alignment
         if self.align == TextAlign.RIGHT:
             align_pos = (self.size[0] - font_rect[2], align_pos[1])
         elif self.align == TextAlign.CENTER:
-            align_pos = ((self.size[0] - font_rect[2])/2, align_pos[1])
+            align_pos = ((self.size[0] - font_rect[2]) / 2, align_pos[1])
 
         # vertical
         if self.valign == TextAlign.BOTTOM:
             align_pos = (align_pos[0], self.size[1] - font_rect[3])
         elif self.valign == TextAlign.CENTER:
-            align_pos = (align_pos[0], (self.size[1] - font_rect[3])/2)
+            align_pos = (align_pos[0], (self.size[1] - font_rect[3]) / 2)
 
         # add any offset
         align_pos = (align_pos[0] + self.offset[0],
@@ -586,8 +581,8 @@ class PyguimeKeypadLayout(object):
         [PyguimeKeypadKey(display='Clr', function=KeypadFunction.Clear),
          PyguimeKeypadKey(display='0'),
          PyguimeKeypadKey(display='.'),
-        ],
-        ])
+         ],
+    ])
 
 
 @attr.s
@@ -597,7 +592,7 @@ class PyguimeKeypad(PyguimeContainer):
     children = attr.ib(default=None)
 
     def add_textbox(self, size=(100, 30), font_size=15,
-                    font_colour=(255, 0, 0), pos=(0,0),
+                    font_colour=(255, 0, 0), pos=(0, 0),
                     initial_text=""):
         self.add(PyguimeTextbox(name="textbox", size=size, pos=pos,
                                 text=initial_text, font_size=font_size,
@@ -623,7 +618,7 @@ class PyguimeKeypad(PyguimeContainer):
             textbox.text = textbox.text + widget.data.get('character', '')
 
     def generate(self, pos=(0, 30), key_size=(30, 30), key_space=(10, 10),
-                 background=(100, 100, 100), font_colour=(255,255,0),
+                 background=(100, 100, 100), font_colour=(255, 255, 0),
                  layout=PyguimeKeypadLayout()):
         """ Add a keypad (or other buttons) to a PyguimeKeypad. The
             layout of the keys is defined by the PyguimeKeypadLayout object
@@ -658,6 +653,7 @@ class PyguimeScreen(object):
     width = attr.ib(default=WIDTH)
     height = attr.ib(default=HEIGHT)
 
+
 def draw_widgets(surface, widgets):
     """ Draw the pyguime widgets onto the surface"""
 
@@ -667,8 +663,8 @@ def draw_widgets(surface, widgets):
         if w_surface:
             surface.blit(w_surface, w.pos, (0, 0, w.size[0], w.size[1]))
 
-
     return surface
+
 
 def get_widget_at_position(widgets, pos):
     """ Return the widget that is at position pos """
@@ -676,7 +672,7 @@ def get_widget_at_position(widgets, pos):
     cur_widget = None
     for w in widgets:
         if (w.pos[0] <= pos[0] and w.pos[0] + w.size[0] > pos[0] and
-            w.pos[1] <= pos[1] and w.pos[1] + w.size[1] > pos[1]):
+                w.pos[1] <= pos[1] and w.pos[1] + w.size[1] > pos[1]):
             # Inside bounding box
             cur_widget = w
 
@@ -685,6 +681,7 @@ def get_widget_at_position(widgets, pos):
 
 # The last widget that was clicked on
 _last_mouse_click_widget = None
+
 
 def _clear_downclick_status(widgets):
     """ Set the down click property to False for all widgets that
@@ -763,7 +760,7 @@ def find_widgets_by_filter(widgets, filter):
 def find_widgets_by_name(widgets, name):
     """ Return all widgets that have the name 'name'. Also looks in child
         widgets """
-    return find_widgets_by_filter(widgets, lambda x: x.name == name )
+    return find_widgets_by_filter(widgets, lambda x: x.name == name)
 
 
 def find_widgets_that_are_down(widgets):

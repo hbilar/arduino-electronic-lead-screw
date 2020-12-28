@@ -1,12 +1,12 @@
 import logging
 import sys
 
-sys.path.insert(0, '../libraries/')
 
 import attr
 import pygame
 
 
+sys.path.insert(0, '../libraries/')
 import pyguime
 
 import logic
@@ -191,9 +191,9 @@ def main():
     checkbox_2 = pyguime.PyguimeCheckbox(name="checkbox2", text="second").generate()
 
     checkboxes=pyguime.PyguimeContainer(name="checkboxes", pos=(100, 100), auto_size=True, background=(128, 128, 128)).\
-        add_object_linear(cb_label, vertical=True).\
-        add_object_linear(checkbox_1, vertical=True).\
-        add_object_linear(checkbox_2, vertical=True).\
+        add_object_linear(cb_label).\
+        add_object_linear(checkbox_1).\
+        add_object_linear(checkbox_2).\
         generate()
     #text = "check me", sticky = True).generate()
 
@@ -204,9 +204,9 @@ def main():
     radio_label = pyguime.PyguimeTextbox(name="mylabelradio", text="my radiobuttons", transparent_background=True).generate()
     radio_buttons = pyguime.PyguimeContainer(name="radiobuttons", pos=(300, 100), auto_size=True,
                                              background=(128, 128, 128)). \
-        add_object_linear(radio_label, vertical=True). \
-        add_object_linear(radio_1, vertical=True). \
-        add_object_linear(radio_2, vertical=True). \
+        add_object_linear(radio_label). \
+        add_object_linear(radio_1). \
+        add_object_linear(radio_2). \
         generate()
 
     widgets = [ pyguime.PyguimeWidget(background=(255,255,0),name="rect1", pos=(500,100), size=(50, 100), click_callback=logic.sample_button_callback),
