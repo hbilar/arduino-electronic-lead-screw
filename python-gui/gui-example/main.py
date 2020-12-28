@@ -1,8 +1,12 @@
+import logging
 import sys
+
+sys.path.insert(0, '../libraries/')
+
 import attr
 import pygame
 
-#from pyguime import pyguime
+
 import pyguime
 
 import logic
@@ -58,6 +62,12 @@ def cached_keypad(func):
         return result
 
     return wrapper
+
+
+
+def example_button_callback(widget, pos):
+    """ Example callback for buttons """
+    print(f"EXAMPLE BUTTON PRESSED: {widget}")
 
 
 def main_loop(pyguime_screen, widgets):
@@ -147,7 +157,7 @@ def main():
                                             row * (key_size[1] + key_space[1])),
                                        size=key_size,
                                        background=(0,20*n,0),
-                                       click_callback=logic.keypad_button_callback
+                                       handle_click_callback=logic.keypad_button_callback
                                             )
         keypad_widgets.append(number)
 
@@ -171,7 +181,7 @@ def main():
         generate(pos=(0, 50))
 
 
-    button1 = pyguime.PyguimeButton(name="button1", pos=(600,200)).generate()
+    button1 = pyguime.PyguimeButton(name="button1", pos=(600,200), click_callback=example_button_callback).generate()
     sticky_button1 = pyguime.PyguimeButton(name="sticky_button1", pos=(600,280),
                                            text="sticky", sticky=True).generate()
 
@@ -199,14 +209,17 @@ def main():
         add_object_linear(radio_2, vertical=True). \
         generate()
 
-    widgets = [ pyguime.PyguimeWidget(name="rect1", pos=(100,100), size=(50, 100), click_callback=logic.sample_button_callback),
+    widgets = [ pyguime.PyguimeWidget(background=(255,255,0),name="rect1", pos=(500,100), size=(50, 100), click_callback=logic.sample_button_callback),
                 pyguime.PyguimeWidget(name="image", pos=(200, 200), size=(50, 50), image="images/ball.png"),
                 pyguime.PyguimeTextbox(name="keypad_text", pos=(300, 230), size=(100, 100), text='test'),
-                ] + keypad_widgets + [ container ] + [ keypad ] + [ container2] +\
-                [keypad2, button1, sticky_button1, checkboxes, radio_buttons ]
-
+                ] + keypad_widgets + [ container ] + [ keypad ] + [ container2] + \
+              [keypad2, button1, sticky_button1, checkboxes, radio_buttons ]
     main_loop(pyguime_screen, widgets)
      
      
 if __name__=="__main__":
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
+
     main()

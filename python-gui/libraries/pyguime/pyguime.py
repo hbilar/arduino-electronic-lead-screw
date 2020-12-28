@@ -1,3 +1,6 @@
+import logging
+import warnings
+
 import pygame
 import attr
 
@@ -25,8 +28,6 @@ class TextAlign(enum.Enum):
     BOTTOM = 5
 
 
-image_data = {}
-
 # Radio buttons keep track of their own "exclusion groups" in this global dict
 radio_exclusion_list = {}
 
@@ -44,7 +45,6 @@ class PyguimeBaseWidget(object):
 
     # dict to hold user defined info about the widget
     data = attr.ib(default=None)
-
     parent = attr.ib(default=None)
 
 
@@ -79,10 +79,14 @@ class PyguimeClickable(PyguimeBaseWidget):
         :return: None
         """
 
-        print(f"DEFAULT CLICK CALLBACK: {self}")
-        if self.propagate_click and self.parent:
-            if self.parent.click_callback:
-                self.parent.click_callback(pos)
+        logging.debug(f"_default_click_callback for {self}")
+
+        if self.click_callback:
+            self.click_callback(self, pos)
+        else:
+            if self.propagate_click and self.parent:
+                if self.parent.handle_click_callback:
+                    self.parent.handle_click_callback(pos)
 
     def determine_background(self):
         """ Find the background colour to use for this object. Checks if
@@ -120,8 +124,9 @@ class PyguimeClickable(PyguimeBaseWidget):
 
         return c
 
-    click_callback = attr.ib(default=_default_click_callback)
+    handle_click_callback = attr.ib(default=_default_click_callback)
 
+    click_callback = attr.ib(default=None)
 
 @attr.s
 class PyguimeContainer(PyguimeClickable):
@@ -199,15 +204,15 @@ class PyguimeContainer(PyguimeClickable):
     def container_handle_mouseclick(self, pos):
         """ Process a mouse click in the container"""
 
-        print(f"CONTAINER click at {pos[0]} x {pos[1]}")
+        logging.debug(f"container_handle_mouseclick() click at {pos[0]} x {pos[1]}")
         w = self.get_widget_at_position(pos)
-        print(f"Widget: {w}")
+        logging.debug(f"container_handle_mouseclick() widget: {w}")
 
-        if w and w.click_callback:
+        if w and w.handle_click_callback:
             rel_pos = (pos[0] - w.pos[0], pos[1] - w.pos[1])
-            w.click_callback(w, rel_pos)
+            w.handle_click_callback(w, rel_pos)
 
-    click_callback = attr.ib(default=container_handle_mouseclick)
+    handle_click_callback = attr.ib(default=container_handle_mouseclick)
 
 
     def generate(self):
@@ -233,7 +238,7 @@ class PyguimeWidget(PyguimeClickable):
     """ Class to hold a widget. Widgets are objects that can be drawn on screen.
         A widget is a container that can contain other widgets """
 
-    click_callback = attr.ib(default=None)
+    handle_click_callback = attr.ib(default=None)
 
     image = attr.ib(default=None)
 
@@ -247,9 +252,8 @@ class PyguimeWidget(PyguimeClickable):
         surface = pygame.Surface(self.size)
 
         if self.image:
-            #if not image_data.get(self.image, None):
             if not self._image_data:
-                print("loading")
+                logging.debug(f"PyguimeWidget.draw(): loading image {self.image}")
                 self._image_data = pygame.image.load(self.image)
             surface.blit(self._image_data, (0, 0), (0, 0, self.size[0], self.size[1]))
         elif self.image_function:
@@ -339,19 +343,22 @@ class PyguimeButton(PyguimeClickable):
     def button_handle_mouseclick(self, pos):
         """ Process a mouse click in the container"""
 
-        print(f"BUTTON {self.name} click at {pos[0]} x {pos[1]}")
+        logging.debug(f"button_handle_mouseclick(): button {self.name} click at {pos[0]} x {pos[1]}")
         if self.sticky:
             self.is_down = not self.is_down
 
+        if self.click_callback:
+            self.click_callback(self, pos)
 
-    click_callback = attr.ib(default=button_handle_mouseclick)
+
+    handle_click_callback = attr.ib(default=button_handle_mouseclick)
 
     def generate(self):
         self.add(PyguimeTextbox(name=f"textbox_{self.name}", size=self.size,
                                 text=self.text, font_size=self.font_size,
                                 font_colour=self.font_colour, align=self.align,
                                 valign=self.valign,
-                                click_callback=self.click_callback,
+                                handle_click_callback=self.handle_click_callback,
                                 transparent_background=True))
         return self
 
@@ -429,13 +436,12 @@ class PyguimeCheckbox(PyguimeButton):
 
             # make sure that none of the other items in the list are "is_down"
             for w in radio_exclusion_list.get(self.exclusive_group_id, []):
-                print(f"   EXCLUSIVE LIST:  w = {w}")
                 if hasattr(w, "is_down"):
                     w.is_down = False
             # and record ourselves as is_down
             self.is_down = True
 
-    click_callback = attr.ib(default=button_handle_mouseclick)
+    handle_click_callback = attr.ib(default=button_handle_mouseclick)
 
     def generate(self):
         self.sticky = True
@@ -454,7 +460,7 @@ class PyguimeCheckbox(PyguimeButton):
                                 text=self.text, font_size=self.font_size,
                                 font_colour=self.font_colour, align=TextAlign.LEFT,
                                 valign=self.valign,
-                                click_callback=self.click_callback,
+                                handle_click_callback=self.handle_click_callback,
                                 transparent_background=True,
                                 offset=(self.checkbox_size[0] + self.checkbox_offset[0] + self.text_offset[0], self.text_offset[1])))
         return self
@@ -600,15 +606,13 @@ class PyguimeKeypad(PyguimeContainer):
         return self
 
     def _key_callback(widget, pos):
-        print(f"Callback for widget {widget},   pos = {pos}")
-
         if not widget.parent:
-            print(f"** ERROR: parent not defined for {widget}")
+            warnings.warn(f"PyguimeKeypad: _key_callback ERROR: parent not defined for {widget}")
             return
 
         textbox = widget.parent.get_widget_by_name('textbox')
         if not textbox:
-            print(f"** ERROR: No widget named 'textbox' could be found")
+            warnings.warn(f"PyguimeKeypad: _key_callback: ERROR: No widget named 'textbox' could be found")
             return
 
         if widget.data.get('function', None) == KeypadFunction.Clear:
@@ -617,7 +621,6 @@ class PyguimeKeypad(PyguimeContainer):
             textbox.text = textbox.text[:-1]
         else:
             textbox.text = textbox.text + widget.data.get('character', '')
-            print(f"Updating textbox to {textbox.text}")
 
     def generate(self, pos=(0, 30), key_size=(30, 30), key_space=(10, 10),
                  background=(100, 100, 100), font_colour=(255,255,0),
@@ -639,7 +642,7 @@ class PyguimeKeypad(PyguimeContainer):
                                       valign=TextAlign.CENTER,
                                       align=TextAlign.CENTER,
                                       background=background,
-                                      click_callback=PyguimeKeypad._key_callback,
+                                      handle_click_callback=PyguimeKeypad._key_callback,
                                       parent=self,
                                       data={'character': k.value,
                                             'function': k.function}
@@ -700,9 +703,9 @@ def _clear_downclick_status(widgets):
 def handle_mouseclick_up(widgets, pos):
     """ Process a mouse click """
 
-    print(f"Mouse UP at {pos[0]} x {pos[1]}")
+    logging.debug(f"handle_mouseclick_up: Mouse UP at {pos[0]} x {pos[1]}")
     w = get_widget_at_position(widgets, pos)
-    print(f"Widget: {w}")
+    logging.debug(f"handle_mouseclick_up: Widget: {w}")
 
     global _last_mouse_click_widget
 
@@ -710,9 +713,9 @@ def handle_mouseclick_up(widgets, pos):
         # good - the widget we release the mouse on is the same as the one we
         # clicked on
 
-        if w and w.click_callback:
+        if w and w.handle_click_callback:
             rel_pos = (pos[0] - w.pos[0], pos[1] - w.pos[1])
-            w.click_callback(w, rel_pos)
+            w.handle_click_callback(w, rel_pos)
 
     # As we have now released the mouse button, we should not have any
     # widgets that currently have the mouse down on them.

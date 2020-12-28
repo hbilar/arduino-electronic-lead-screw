@@ -1,6 +1,9 @@
 """ File to handle the logic side of the user interface, e.g. button
     callbacks """
 
+import logging
+import warnings
+
 import pyguime
 
 textbox_values = {}
@@ -9,10 +12,10 @@ textbox_values = {}
 def keypad_button_callback(widget, pos):
     """ Callback for a specific number in a keypad """
 
-    print(f"** Keypad callback: position = {pos}, widget = {widget}")
+    logging.info(f"keypad_button_callback: position = {pos}, widget = {widget}")
 
     if not (widget.data and widget.data.get('textbox_id', None)):
-        print(f"*** ERROR: No 'textbox_id' in data dict for {widget}")
+        warnings.warn(f"No 'textbox_id' in data dict for {widget}")
         return
 
     textbox_id = widget.data['textbox_id']
@@ -20,7 +23,7 @@ def keypad_button_callback(widget, pos):
 
     cur_val = cur_val + widget.data.get('character', '')
 
-    print(f"Updating textbox {textbox_id} to {cur_val}")
+    logging.info(f"Updating textbox {textbox_id} to {cur_val}")
 
     textbox_values[textbox_id] = cur_val
 
@@ -28,7 +31,7 @@ def keypad_button_callback(widget, pos):
 def sample_button_callback(widget, pos):
     """ Sample button callback that just prints stuff to stdout """
 
-    print(f"** Button callback: position = {pos}, widget = {widget}")
+    logging.info(f"sample_button_callback: position = {pos}, widget = {widget}")
 
     if isinstance(widget, pyguime.PyguimeTextbox):
         n = 0
